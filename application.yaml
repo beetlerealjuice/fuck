@@ -20,10 +20,10 @@ indexing-settings:
 #      name: et-cetera.ru
 #    - url: https://www.lutherancathedral.ru/
 #      name: lutherancathedral.ru
-    - url: https://dombulgakova.ru/
-      name: dombulgakova.ru
-    - url: https://www.svetlovka.ru/
-      name: www.svetlovka.ru
+#    - url: https://dombulgakova.ru/
+#      name: dombulgakova.ru
+#    - url: https://www.svetlovka.ru/
+#      name: www.svetlovka.ru
 server:
   port: 8080
 spring:

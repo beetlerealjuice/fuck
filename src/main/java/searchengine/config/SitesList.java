@@ -16,7 +16,7 @@ import java.util.Map;
 @ConfigurationProperties(prefix = "indexing-settings")
 public class SitesList {
 
-    private List<Site> sites;
+    private List<SiteConfig> sites;
 
 
 //    private Map<String, String> site;
