@@ -30,8 +30,8 @@ public class IndexingServiceImpl implements IndexingService {
     private SitesList list;
     @Autowired
     private SiteRepository siteRepository;
-    @Autowired
-    private PageRepository pageRepository;
+//    @Autowired
+//    private PageRepository pageRepository;
 
     @Override
     public Boolean startIndexing() {
@@ -58,7 +58,7 @@ public class IndexingServiceImpl implements IndexingService {
                         newSite.getUrl().substring(12) : newSite.getUrl();
                 try {
                     ForkJoinPool pool = new ForkJoinPool();
-                    links = pool.invoke(new Indexing(newSite.getUrl(), domen)); //
+                    links = pool.invoke(new Indexing(newSite.getUrl(), domen)); // FJP
                     pool.shutdown();
                 } catch (Exception ex) {
                     newSite.setLastError(ex.getMessage());
@@ -67,18 +67,18 @@ public class IndexingServiceImpl implements IndexingService {
                     siteRepository.save(newSite);
                 }
                 if (!links.isEmpty()) {
-                    for (String link : links) {
-                        Page newPage = new Page();
-                        newPage.setSite(newSite); // Потоки подвисают
-                        newPage.setPath(newSite.getUrl());
-                        try {
-                            newPage.setContent(getHtml(link));
-                            newPage.setCode(new ResponseEntity<>(HttpStatus.OK).getStatusCodeValue());
-                        } catch (Exception ex) {
-                            newPage.setCode(new ResponseEntity<>(HttpStatus.NOT_FOUND).getStatusCodeValue());
-                        }
-                        pageRepository.save(newPage);
-                    }
+//                    for (String link : links) {
+//                        Page newPage = new Page();
+//                        newPage.setSite(newSite); // Потоки подвисают
+//                        newPage.setPath(newSite.getUrl());
+//                        try {
+//                            newPage.setContent(getHtml(link));
+//                            newPage.setCode(new ResponseEntity<>(HttpStatus.OK).getStatusCodeValue());
+//                        } catch (Exception ex) {
+//                            newPage.setCode(new ResponseEntity<>(HttpStatus.NOT_FOUND).getStatusCodeValue());
+//                        }
+//                        pageRepository.save(newPage);
+//                    }
                     newSite.setStatusTime(LocalDateTime.now());
                     newSite.setStatus(Status.INDEXED);
                     siteRepository.save(newSite);
@@ -90,11 +90,11 @@ public class IndexingServiceImpl implements IndexingService {
         return true;
     }
 
-    @SneakyThrows
-    public String getHtml(String link) {
-        Thread.sleep(500);
-        String html = Jsoup.connect(link.trim())
-                .userAgent("Mozilla").get().html();
-        return html;
-    }
+//    @SneakyThrows
+//    public String getHtml(String link) {
+//        Thread.sleep(500);
+//        String html = Jsoup.connect(link.trim())
+//                .userAgent("Mozilla").get().html();
+//        return html;
+//    }
 }

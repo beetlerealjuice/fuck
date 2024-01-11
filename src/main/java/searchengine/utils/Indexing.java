@@ -5,19 +5,28 @@ import lombok.SneakyThrows;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import searchengine.model.Page;
+import searchengine.model.Status;
+import searchengine.repository.PageRepository;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.RecursiveTask;
 
 
 public class Indexing extends RecursiveTask<Set<String>> {
 
-    private static Set<String> checkURL = new HashSet<>();
+    @Autowired
+    private PageRepository pageRepository;
 
-    private static String path;
-    private static String domen;
+    private String path;
 
+    private String domen;
 
     public Indexing(String path, String domen) {
         this.path = path;
@@ -29,7 +38,7 @@ public class Indexing extends RecursiveTask<Set<String>> {
     @SneakyThrows
     @Override
     protected Set<String> compute() {
-
+//    protected void compute() {
         Set<String> links = new HashSet<>();
         Set<Indexing> tasks = new HashSet<>();
 
@@ -40,33 +49,67 @@ public class Indexing extends RecursiveTask<Set<String>> {
         Elements elements = Jsoup.connect(path.trim())
                 .userAgent("Mozilla").get().select("a");
         for (Element element : elements) {
+//            System.out.println("Before: " + element.absUrl("href"));
 
-            if (element.absUrl("href").contains(domen.trim())) {
+            if (element.absUrl("href").contains(domen.trim())
+                    && !links.contains(element.absUrl("href"))) {
+
+//                System.out.println("After: " + element.absUrl("href"));
+
+                //TODO Сделать обращение к БД для проверки была ли такая ссылка заптсана в БД
+                Optional<Page> pageOptional = pageRepository.findByPath(element.absUrl("href"));
+                System.out.println("PageOptional - " + pageOptional.get());
+                if (pageOptional.isEmpty()) {
+
+                    setPage(element.absUrl("href"));
+                }
 
                 Indexing r = new Indexing(element.absUrl("href"), domen); //
                 r.fork();
                 tasks.add(r);
-//        links.add(element.absUrl("href"));
-            }
 
-//            if (element.absUrl("href").contains(domen.trim()) // проверка ссылок не ведет ли на стороние ресурсы
-//                    && element.absUrl("href").matches(regex)
-//                    && !checkURL.contains(element.absUrl("href"))) {
-//
-//                Indexing r = new Indexing(element.absUrl("href"), domen); //
-//                r.fork();
-//                tasks.add(r);
-//                checkURL.add(element.absUrl("href"));
-//            } else break;
+            } else break;
         }
+//        tasks.forEach(s-> System.out.println("task: " + s.toString()));
 
         for (Indexing task : tasks) {
             links.addAll(task.join());
         }
 
-//        links.forEach(s -> System.out.println("links - " + s));
+        links.forEach(s -> System.out.println("links - " + s));
 
         return links;
     }
+
+    public void setPage(String link) {
+        Page newPage = new Page();
+//        newPage.setSite(newSite); // Потоки подвисают
+        newPage.setPath(link);
+        try {
+            newPage.setContent(link);
+            newPage.setCode(new ResponseEntity<>(HttpStatus.OK).getStatusCodeValue());
+        } catch (Exception ex) {
+            newPage.setCode(new ResponseEntity<>(HttpStatus.NOT_FOUND).getStatusCodeValue());
+        }
+        pageRepository.save(newPage);
+
+    }
+
+    @SneakyThrows
+    public String getHtml(String link) {
+        Thread.sleep(500);
+        String html = Jsoup.connect(link.trim())
+                .userAgent("Mozilla").get().html();
+        return html;
+    }
+
+    @Override
+    public String toString() {
+        return "Indexing{" +
+                "path='" + path + '\'' +
+                ", domen='" + domen + '\'' +
+                '}';
+    }
+
 
 }
