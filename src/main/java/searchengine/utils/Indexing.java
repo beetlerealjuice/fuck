@@ -8,14 +8,14 @@ import org.jsoup.select.Elements;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
 import searchengine.model.Page;
+import searchengine.model.Site;
 import searchengine.model.Status;
 import searchengine.repository.PageRepository;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.RecursiveTask;
 
 
@@ -24,13 +24,11 @@ public class Indexing extends RecursiveTask<Set<String>> {
     @Autowired
     private PageRepository pageRepository;
 
-    private String path;
+    private Site site;
 
-    private String domen;
 
-    public Indexing(String path, String domen) {
-        this.path = path;
-        this.domen = domen;
+    public Indexing(Site site) {
+        this.site = site;
 
     }
 
@@ -44,29 +42,32 @@ public class Indexing extends RecursiveTask<Set<String>> {
 
         String regex = "https://[a-z.]{1,}[^, .]+";
 
-        links.add(path);
+        links.add(site.getUrl());
         Thread.sleep(500);
-        Elements elements = Jsoup.connect(path.trim())
+        Elements elements = Jsoup.connect(site.getUrl().trim())
                 .userAgent("Mozilla").get().select("a");
         for (Element element : elements) {
-//            System.out.println("Before: " + element.absUrl("href"));
-
-            if (element.absUrl("href").contains(domen.trim())
+            System.out.println("Before: " + element.absUrl("href"));
+            if (element.absUrl("href").contains(getDomen(site).trim())
                     && !links.contains(element.absUrl("href"))) {
 
-//                System.out.println("After: " + element.absUrl("href"));
+                setPage(site, element.absUrl("href"));
+                System.out.println("After: " + element.absUrl("href"));
 
-                //TODO Сделать обращение к БД для проверки была ли такая ссылка заптсана в БД
-                Optional<Page> pageOptional = pageRepository.findByPath(element.absUrl("href"));
-                System.out.println("PageOptional - " + pageOptional.get());
-                if (pageOptional.isEmpty()) {
+                //TODO Сделать обращение к БД для проверки была ли такая ссылка записана в БД
+//                List<Optional> pageOptional = Collections.singletonList(pageRepository.findByPath(element.absUrl("href")));
+//                pageOptional.forEach(System.out::println);
 
-                    setPage(element.absUrl("href"));
-                }
 
-                Indexing r = new Indexing(element.absUrl("href"), domen); //
-                r.fork();
-                tasks.add(r);
+//                System.out.println("PageOptional - " + pageOptional.get());
+//                if (pageOptional.isEmpty()) {
+//
+//                    setPage(element.absUrl("href"));
+//                }
+
+//                Indexing r = new Indexing(element.absUrl("href")); //
+//                r.fork();
+//                tasks.add(r);
 
             } else break;
         }
@@ -81,12 +82,12 @@ public class Indexing extends RecursiveTask<Set<String>> {
         return links;
     }
 
-    public void setPage(String link) {
+    public void setPage(Site site, String url) {
         Page newPage = new Page();
-//        newPage.setSite(newSite); // Потоки подвисают
-        newPage.setPath(link);
+        newPage.setSite(site); // Потоки подвисают
+        newPage.setPath(url);
         try {
-            newPage.setContent(link);
+            newPage.setContent(url);
             newPage.setCode(new ResponseEntity<>(HttpStatus.OK).getStatusCodeValue());
         } catch (Exception ex) {
             newPage.setCode(new ResponseEntity<>(HttpStatus.NOT_FOUND).getStatusCodeValue());
@@ -103,12 +104,10 @@ public class Indexing extends RecursiveTask<Set<String>> {
         return html;
     }
 
-    @Override
-    public String toString() {
-        return "Indexing{" +
-                "path='" + path + '\'' +
-                ", domen='" + domen + '\'' +
-                '}';
+    public String getDomen(Site site) {
+        String domen = (site.getUrl().contains("www")) ?
+                site.getUrl().substring(12) : site.getUrl();
+        return domen;
     }
 
 

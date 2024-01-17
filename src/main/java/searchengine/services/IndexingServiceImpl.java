@@ -54,11 +54,10 @@ public class IndexingServiceImpl implements IndexingService {
 
 //                synchronized (newSite) {
                 Set<String> links = new ConcurrentSkipListSet<>();
-                String domen = (newSite.getUrl().contains("www")) ?
-                        newSite.getUrl().substring(12) : newSite.getUrl();
+
                 try {
                     ForkJoinPool pool = new ForkJoinPool();
-                    links = pool.invoke(new Indexing(newSite.getUrl(), domen)); // FJP
+                    links = pool.invoke(new Indexing(newSite)); // FJP
                     pool.shutdown();
                 } catch (Exception ex) {
                     newSite.setLastError(ex.getMessage());
