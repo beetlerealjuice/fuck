@@ -57,7 +57,9 @@ public class IndexingServiceImpl implements IndexingService {
 
                 try {
                     ForkJoinPool pool = new ForkJoinPool();
-                    links = pool.invoke(new Indexing(newSite)); // FJP
+                    Indexing indexing = new Indexing();
+                    indexing.setSite(newSite);
+                    links = pool.invoke(indexing); // FJP
                     pool.shutdown();
                 } catch (Exception ex) {
                     newSite.setLastError(ex.getMessage());

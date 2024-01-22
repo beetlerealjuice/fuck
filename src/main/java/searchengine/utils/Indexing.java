@@ -1,6 +1,8 @@
 package searchengine.utils;
 
 
+import lombok.Getter;
+import lombok.Setter;
 import lombok.SneakyThrows;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
@@ -8,6 +10,7 @@ import org.jsoup.select.Elements;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import searchengine.model.Page;
 import searchengine.model.Site;
@@ -18,19 +21,14 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.RecursiveTask;
 
-
+@Component
 public class Indexing extends RecursiveTask<Set<String>> {
 
     @Autowired
     private PageRepository pageRepository;
 
+    @Setter
     private Site site;
-
-
-    public Indexing(Site site) {
-        this.site = site;
-
-    }
 
 
     @SneakyThrows
@@ -84,8 +82,10 @@ public class Indexing extends RecursiveTask<Set<String>> {
 
     public void setPage(Site site, String url) {
         Page newPage = new Page();
-        newPage.setSite(site); // Потоки подвисают
+//        newPage.setSite(site); // Потоки подвисают
+
         newPage.setPath(url);
+
         try {
             newPage.setContent(url);
             newPage.setCode(new ResponseEntity<>(HttpStatus.OK).getStatusCodeValue());
