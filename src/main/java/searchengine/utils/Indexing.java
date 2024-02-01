@@ -1,7 +1,6 @@
 package searchengine.utils;
 
 
-import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import org.jsoup.Jsoup;
@@ -11,24 +10,31 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
+import searchengine.controllers.ApiController;
 import searchengine.model.Page;
 import searchengine.model.Site;
-import searchengine.model.Status;
 import searchengine.repository.PageRepository;
+import searchengine.services.IndexingServiceImpl;
 
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.RecursiveTask;
 
 @Component
 public class Indexing extends RecursiveTask<Set<String>> {
 
-    @Autowired
-    private PageRepository pageRepository;
+
+
+//    @Autowired
+    private final PageRepository pageRepository;
+
 
     @Setter
     private Site site;
+
+
+    public Indexing(PageRepository pageRepository) {
+        this.pageRepository = pageRepository;
+    }
 
 
     @SneakyThrows
@@ -38,60 +44,55 @@ public class Indexing extends RecursiveTask<Set<String>> {
         Set<String> links = new HashSet<>();
         Set<Indexing> tasks = new HashSet<>();
 
-        String regex = "https://[a-z.]{1,}[^, .]+";
 
-        links.add(site.getUrl());
-        Thread.sleep(500);
-        Elements elements = Jsoup.connect(site.getUrl().trim())
-                .userAgent("Mozilla").get().select("a");
-        for (Element element : elements) {
-            System.out.println("Before: " + element.absUrl("href"));
-            if (element.absUrl("href").contains(getDomen(site).trim())
-                    && !links.contains(element.absUrl("href"))) {
+            String regex = "https://[a-z.]{1,}[^, .]+";
 
-                setPage(site, element.absUrl("href"));
-                System.out.println("After: " + element.absUrl("href"));
+            links.add(site.getUrl());
+            Thread.sleep(500);
+            Elements elements = Jsoup.connect(site.getUrl().trim())
+                    .userAgent("Mozilla").get().select("a");
+            for (Element element : elements) {
+                System.out.println("Before: " + element.absUrl("href"));
+                if (element.absUrl("href").contains(getDomen(site).trim())
+                        && !links.contains(element.absUrl("href"))) {
 
-                //TODO Сделать обращение к БД для проверки была ли такая ссылка записана в БД
-//                List<Optional> pageOptional = Collections.singletonList(pageRepository.findByPath(element.absUrl("href")));
-//                pageOptional.forEach(System.out::println);
+                    setPage(site, element.absUrl("href"));
+                    System.out.println("After: " + element.absUrl("href"));
 
+                    Indexing r = new Indexing(pageRepository);
+                    r.fork();
+                    tasks.add(r);
 
-//                System.out.println("PageOptional - " + pageOptional.get());
-//                if (pageOptional.isEmpty()) {
-//
-//                    setPage(element.absUrl("href"));
-//                }
-
-//                Indexing r = new Indexing(element.absUrl("href")); //
-//                r.fork();
-//                tasks.add(r);
-
-            } else break;
-        }
+                } else break;
+            }
 //        tasks.forEach(s-> System.out.println("task: " + s.toString()));
 
-        for (Indexing task : tasks) {
-            links.addAll(task.join());
-        }
+            for (Indexing task : tasks) {
+                links.addAll(task.join());
+            }
 
-        links.forEach(s -> System.out.println("links - " + s));
 
-        return links;
+            links.forEach(s -> System.out.println("links - " + s));
+
+
+            return links;
+
+
     }
 
     public void setPage(Site site, String url) {
         Page newPage = new Page();
-//        newPage.setSite(site); // Потоки подвисают
+        newPage.setSite(site); // Потоки подвисают
 
         newPage.setPath(url);
 
         try {
-            newPage.setContent(url);
+            newPage.setContent(getHtml(url));
             newPage.setCode(new ResponseEntity<>(HttpStatus.OK).getStatusCodeValue());
         } catch (Exception ex) {
             newPage.setCode(new ResponseEntity<>(HttpStatus.NOT_FOUND).getStatusCodeValue());
         }
+
         pageRepository.save(newPage);
 
     }
