@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+
 @Getter
 @Setter
 @Entity
@@ -22,7 +23,6 @@ public class Site {
     private String url;
     @Column(columnDefinition = "VARCHAR(255)")
     private String name;
-
 
 
 }

@@ -1,12 +1,11 @@
 package searchengine.controllers;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import searchengine.dto.statistics.StatisticsResponse;
+import searchengine.model.Response;
 import searchengine.services.IndexingService;
-
 import searchengine.services.StatisticsService;
 
 @RestController
@@ -29,15 +28,44 @@ public class ApiController {
     }
 
     @GetMapping("/startIndexing")
-    public ResponseEntity<Boolean> startIndexing() {
-        return ResponseEntity.ok(indexingServiceService.startIndexing());
+    public ResponseEntity<?> startIndexing() {
+        Response response = new Response();
+        if (indexingServiceService.getActiveTreads() == 0) {
+            response.setResult(indexingServiceService.startIndexing());
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        } else
+
+            response.setResult(false);
+        response.setError("Индексация уже запущена");
+        return new ResponseEntity<>(response, HttpStatus.NOT_IMPLEMENTED);
 
     }
 
     @GetMapping("/stopIndexing")
-    public ResponseEntity<Boolean> stopIndexing() {
-        return ResponseEntity.ok(indexingServiceService.stopIndexing());
+    public ResponseEntity<?> stopIndexing() {
+        Response response = new Response();
+        if (indexingServiceService.getActiveTreads() == 0) {
+            response.setResult(false);
+            response.setError("Индексация не запущена");
+            return new ResponseEntity<>(response, HttpStatus.NOT_IMPLEMENTED);
+        } else
+            response.setResult(indexingServiceService.stopIndexing());
+        return new ResponseEntity<>(response, HttpStatus.OK);
 
+    }
+
+    @PostMapping("/indexPage")
+    public ResponseEntity<?> indexPage(@RequestParam String url) {
+        Response response = new Response();
+
+        if (indexingServiceService.indexPage(url) == false) {
+            response.setResult(false);
+            response.setError("Данная страница находится за пределами сайтов,\n" +
+                    "указанных в конфигурационном файле\"");
+            return new ResponseEntity<>(response, HttpStatus.NOT_IMPLEMENTED);
+        }
+        response.setResult(indexingServiceService.indexPage(url));
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
 

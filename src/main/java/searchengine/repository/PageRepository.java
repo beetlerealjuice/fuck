@@ -11,5 +11,6 @@ import java.util.Optional;
 public interface PageRepository extends CrudRepository<Page, Integer> {
 
     Optional<Page> findBySiteId(Site siteId);
-    Optional<Page>findByPath(String path);
+
+    Optional<Page> findByPath(String path);
 }

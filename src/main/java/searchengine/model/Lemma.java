@@ -1,6 +1,5 @@
 package searchengine.model;
 
-import jakarta.persistence.Index;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -8,17 +7,17 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
-@Table(indexes = @Index(columnList = "path")) // Установить индекс для path"
-public class Page {
+public class Lemma {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
+
     @ManyToOne(cascade = CascadeType.MERGE, fetch = FetchType.LAZY)
-    @JoinColumn(name = "site_id") // , nullable = false
+    @JoinColumn(name = "site_id")
     private Site site;
+
+
     @Column(columnDefinition = "VARCHAR(255)")
-    private String path;
-    private int code;
-    @Column(columnDefinition = "MEDIUMTEXT")
-    private String content;
+    private String lemma;
+    private int frequency;
 }

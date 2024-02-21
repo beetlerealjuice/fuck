@@ -1,13 +1,13 @@
 indexing-settings:
   sites:
-#    - url: https://www.lenta.ru
-#      name: Lenta.ru
-#    - url: https://www.skillbox.ru
-#      name: Skillbox
+    - url: https://www.lenta.ru
+      name: Lenta.ru
+    #    - url: https://www.skillbox.ru
+    #      name: Skillbox
     - url: https://www.playback.ru
       name: PlayBack.Ru
-    - url: https://volochek.life/
-      name: volochek.life
+#    - url: https://volochek.life/
+#      name: volochek.life
 #    - url: http://radiomv.ru/
 #      name: radiomv.ru
 #    - url: https://ipfran.ru/
@@ -36,5 +36,5 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
     hibernate:
-     ddl-auto: create #update   # create-drop
+      ddl-auto: create #update   # create-drop
     show-sql: true

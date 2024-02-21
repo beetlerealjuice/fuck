@@ -6,25 +6,21 @@ import lombok.SneakyThrows;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import searchengine.controllers.ApiController;
 import searchengine.model.Page;
 import searchengine.model.Site;
 import searchengine.repository.PageRepository;
-import searchengine.services.IndexingServiceImpl;
 
-import java.util.*;
-import java.util.concurrent.RecursiveTask;
+import java.io.IOException;
+import java.util.Optional;
+import java.util.concurrent.RecursiveAction;
 
 @Component
-public class Indexing extends RecursiveTask<Set<String>> {
+public class Indexing extends RecursiveAction //<Set<String>>
+{
 
-
-
-//    @Autowired
     private final PageRepository pageRepository;
 
 
@@ -39,61 +35,78 @@ public class Indexing extends RecursiveTask<Set<String>> {
 
     @SneakyThrows
     @Override
-    protected Set<String> compute() {
-//    protected void compute() {
-        Set<String> links = new HashSet<>();
-        Set<Indexing> tasks = new HashSet<>();
+    protected void compute() {   //Set<String>
+//        Set<String> links = new HashSet<>();
+//        Set<Indexing> tasks = new HashSet<>();
+//        String regex = "https://[a-z.]{1,}[^, .]+";
+//        links.add(site.getUrl());
 
 
-            String regex = "https://[a-z.]{1,}[^, .]+";
+        Thread.sleep(500);
 
-            links.add(site.getUrl());
-            Thread.sleep(500);
-            Elements elements = Jsoup.connect(site.getUrl().trim())
-                    .userAgent("Mozilla").get().select("a");
-            for (Element element : elements) {
-                System.out.println("Before: " + element.absUrl("href"));
-                if (element.absUrl("href").contains(getDomen(site).trim())
-                        && !links.contains(element.absUrl("href"))) {
+        setPage(site, site.getUrl());
+//        Iterable<Page> pages = pageRepository.findAll();
+//        pages.forEach(s -> {
+        Elements elements;
+        try {
+//                System.out.println("SSS - " + s.getPath());
+            elements = Jsoup.connect(site.getUrl())   // Get data from DB
+                    .userAgent("Mozilla").get().select("a");        //.get().select("a");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        for (Element element : elements) {
+            System.out.println(" --- " + element);
+            System.out.println("Before: " + element.absUrl("href"));
 
-                    setPage(site, element.absUrl("href"));
-                    System.out.println("After: " + element.absUrl("href"));
+            if (element.absUrl("href").contains(getDomen(site).trim())
+//                        &&  !links.contains(element.absUrl("href"))
+            ) {
 
-                    Indexing r = new Indexing(pageRepository);
-                    r.fork();
-                    tasks.add(r);
+                setPage(site, element.absUrl("href"));
+                System.out.println("After: " + element.absUrl("href"));
+//links.add(element.absUrl("href"));
 
-                } else break;
-            }
+//                    Indexing r = new Indexing(pageRepository);
+//                    r.fork();
+//                    tasks.add(r);
+            } else break;
+        }
+
+//        });
+
+        Indexing r = new Indexing(pageRepository);
+        r.fork().join();
+
+
 //        tasks.forEach(s-> System.out.println("task: " + s.toString()));
-
-            for (Indexing task : tasks) {
-                links.addAll(task.join());
-            }
-
-
-            links.forEach(s -> System.out.println("links - " + s));
-
-
-            return links;
+//            for (Indexing task : tasks) {
+//                links.addAll(task.join());
+//                System.out.println("task: " + task);
+//            }
+//        links.forEach(s -> System.out.println("links - " + s));
+//        return links;
 
 
     }
 
-    public void setPage(Site site, String url) {
-        Page newPage = new Page();
-        newPage.setSite(site); // Потоки подвисают
+    private void setPage(Site site, String url) {
+        Optional<Page> page = pageRepository.findByPath(url);
+        if (page.isEmpty()) {
 
-        newPage.setPath(url);
+            Page newPage = new Page();
+            newPage.setSite(site);
+            newPage.setPath(url);
 
-        try {
-            newPage.setContent(getHtml(url));
-            newPage.setCode(new ResponseEntity<>(HttpStatus.OK).getStatusCodeValue());
-        } catch (Exception ex) {
-            newPage.setCode(new ResponseEntity<>(HttpStatus.NOT_FOUND).getStatusCodeValue());
-        }
+            try {
+                newPage.setContent(getHtml(url));
+                newPage.setCode(new ResponseEntity<>(HttpStatus.OK).getStatusCodeValue());
+            } catch (Exception ex) {
+                newPage.setCode(new ResponseEntity<>(HttpStatus.NOT_FOUND).getStatusCodeValue());
+            }
 
-        pageRepository.save(newPage);
+            pageRepository.save(newPage);
+        } else return;
 
     }
 
