@@ -3,6 +3,7 @@ package searchengine.utils;
 import org.apache.lucene.morphology.LuceneMorphology;
 import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
 import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -22,7 +23,16 @@ public class LemmaFinder {
     }
 
 
-    public Map<String, Integer> collectLemmas(String text) {
+    public Map<String, Integer> collectLemmas(String url) {
+        Document elements;
+        try {
+            elements = Jsoup.connect(url)   // Get data from DB
+                    .userAgent("Mozilla").get();        //.get().select("a");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        String text = elements.text();
+
         String[] words = arrayContainsRussianWords(text);
         HashMap<String, Integer> lemmas = new HashMap<>();
 
@@ -30,6 +40,7 @@ public class LemmaFinder {
             if (word.isBlank()) {
                 continue;
             }
+
 
             List<String> wordBaseForms = luceneMorphology.getMorphInfo(word);
             if (anyWordBaseBelongToParticle(wordBaseForms)) {
@@ -49,9 +60,9 @@ public class LemmaFinder {
                 lemmas.put(normalWord, 1);
             }
         }
-        for (Map.Entry<String, Integer> entry : lemmas.entrySet()) {
-            System.out.println(entry.getKey() + " - " + entry.getValue());
-        }
+//        for (Map.Entry<String, Integer> entry : lemmas.entrySet()) {
+//            System.out.println(entry.getKey() + " - " + entry.getValue());
+//        }
         return lemmas;
     }
 

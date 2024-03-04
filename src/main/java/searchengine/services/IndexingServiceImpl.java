@@ -5,9 +5,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import searchengine.config.SiteConfig;
 import searchengine.config.SitesList;
-
 import searchengine.model.Site;
 import searchengine.model.Status;
+import searchengine.repository.IndexSearchRepository;
+import searchengine.repository.LemmaRepository;
 import searchengine.repository.PageRepository;
 import searchengine.repository.SiteRepository;
 import searchengine.utils.Indexing;
@@ -26,8 +27,11 @@ public class IndexingServiceImpl implements IndexingService {
     private SiteRepository siteRepository;
     @Autowired
     private PageRepository pageRepository;
-//    @Autowired
-//    private Index1Repository indexRepository;
+    @Autowired
+    private IndexSearchRepository indexSearchRepository;
+    @Autowired
+    private LemmaRepository lemmaRepository;
+
 
     @Getter
     private volatile int activeTreads;
@@ -63,7 +67,7 @@ public class IndexingServiceImpl implements IndexingService {
 
                 try {
                     ForkJoinPool pool = new ForkJoinPool();
-                    Indexing indexing = new Indexing(pageRepository);
+                    Indexing indexing = new Indexing(pageRepository, lemmaRepository, indexSearchRepository);
                     indexing.setSite(newSite);
 //                        links =
                     pool.invoke(indexing); // FJP
@@ -110,24 +114,21 @@ public class IndexingServiceImpl implements IndexingService {
 
     @Override
     public Boolean indexPage(String url) {
-//        String regex = "https://[a-z.]{1,}[^, .]+";
-//        Optional<Page> page = pageRepository.findByPath(url);
-//
-//
-//        String domen = (url.contains("www")) ?
-//                url.substring(12) : url;
-//
-//
-//        Optional<Site> site = siteRepository.findByUrl(domen);
-//
-//        if (page.isEmpty()) {
-//
-//            Page newPage = new Page();
-////            newPage.setSite(site);
-//            newPage.setPath(url);
-//        }
-//        Index newIndex = new Index();
 
+        String domen = (url.contains("www")) ?
+                url.substring(12).split("/", 2)[0] : url.substring(8).split("/", 2)[0];
+
+
+        Iterable<Site> sites = siteRepository.findAll();
+        int i = 0;
+        for (Site site : sites) {
+            if (site.getUrl().contains(domen)) {
+                i++;
+                Indexing indexing = new Indexing(pageRepository, lemmaRepository, indexSearchRepository);
+                indexing.setPage(site, url);
+            }
+        }
+        if (i == 0) return false;
 
         return true;
     }

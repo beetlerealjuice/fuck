@@ -60,8 +60,7 @@ public class ApiController {
 
         if (indexingServiceService.indexPage(url) == false) {
             response.setResult(false);
-            response.setError("Данная страница находится за пределами сайтов,\n" +
-                    "указанных в конфигурационном файле\"");
+            response.setError("Данная страница находится за пределами сайтов, указанных в конфигурационном файле");
             return new ResponseEntity<>(response, HttpStatus.NOT_IMPLEMENTED);
         }
         response.setResult(indexingServiceService.indexPage(url));

@@ -14,14 +14,14 @@ public class IndexSearch {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
-    @ManyToOne(cascade = CascadeType.MERGE, fetch = FetchType.LAZY)
+    @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JoinColumn(name = "page_id")
     private Page page;
 
     @OneToOne(cascade = CascadeType.MERGE, fetch = FetchType.LAZY)
     @JoinColumn(name = "lemma_id")
     private Lemma lemma;
-    @Column(columnDefinition = "FLOAT")
+    @Column(name = "`rank`")
     private Float rank;
 
 }
