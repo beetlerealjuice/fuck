@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.model.Response;
+import searchengine.model.SearchedData;
 import searchengine.services.IndexingService;
 import searchengine.services.StatisticsService;
 
@@ -24,8 +25,31 @@ public class ApiController {
 
     @GetMapping("/statistics")
     public ResponseEntity<StatisticsResponse> statistics() {
-        return ResponseEntity.ok(statisticsService.getStatistics());
+        StatisticsResponse statisticsResponse = new StatisticsResponse();
+
+        if (indexingServiceService.getStatistic() == null) {
+            statisticsResponse.setResult(false);
+            return new ResponseEntity<>(statisticsResponse, HttpStatus.NOT_IMPLEMENTED);
+        } else
+            statisticsResponse.setResult(true);
+        statisticsResponse.setStatistics(indexingServiceService.getStatistic());
+        return new ResponseEntity<>(statisticsResponse, HttpStatus.OK);
     }
+
+    @GetMapping("/search")
+    public ResponseEntity<SearchedData> search(@RequestParam(value = "query", required = false) String query) {
+        SearchedData searchedData = new SearchedData();
+        if (query != null && !query.isEmpty()) {
+
+            return new ResponseEntity<>(indexingServiceService.search(query), HttpStatus.OK);
+        }
+        searchedData.setResult(false);
+        searchedData.setCount(null);
+        searchedData.setError("Задан пустой поисковый запрос");
+
+        return new ResponseEntity<>(searchedData, HttpStatus.NOT_IMPLEMENTED);
+    }
+
 
     @GetMapping("/startIndexing")
     public ResponseEntity<?> startIndexing() {

@@ -23,7 +23,7 @@ import java.util.Optional;
 import java.util.concurrent.RecursiveAction;
 
 @Component
-public class Indexing extends RecursiveAction //<Set<String>>
+public class Indexing extends RecursiveAction
 {
 
     private final PageRepository pageRepository;
@@ -48,144 +48,83 @@ public class Indexing extends RecursiveAction //<Set<String>>
     protected void compute() {
         Thread.sleep(500);
 
-        setPage(site, site.getUrl());
         Elements elements;
         try {
-            elements = Jsoup.connect(site.getUrl())   // Get data from DB
-                    .userAgent("Mozilla").get().select("a");        //.get().select("a");
+            elements = Jsoup.connect(site.getUrl())
+                    .userAgent("Mozilla").get().select("a");
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
         for (Element element : elements) {
-            System.out.println(" --- " + element);
-            System.out.println("Before: " + element.absUrl("href"));
-
-            if (element.absUrl("href").contains(getDomen(site).trim())
-//                        &&  !links.contains(element.absUrl("href"))
-            ) {
+            if (element.absUrl("href").contains(getDomen(site).trim())) {
 
                 setPage(site, element.absUrl("href"));
-                System.out.println("After: " + element.absUrl("href"));
-//links.add(element.absUrl("href"));
 
-//                    Indexing r = new Indexing(pageRepository);
-//                    r.fork();
-//                    tasks.add(r);
             } else break;
         }
 
-//        });
 
         Indexing r = new Indexing(pageRepository, lemmaRepository, indexSearchRepository);
         r.fork().join();
 
 
-//        tasks.forEach(s-> System.out.println("task: " + s.toString()));
-//            for (Indexing task : tasks) {
-//                links.addAll(task.join());
-//                System.out.println("task: " + task);
-//            }
-//        links.forEach(s -> System.out.println("links - " + s));
-//        return links;
-
-
     }
+
 
     public synchronized void setPage(Site site, String url) {
         int frequency = 0;
 
-        try {
-            Optional<Page> page = pageRepository.findByPath(url);
-            System.out.println("Page - " + page.get().getPath());
-            if (!page.isEmpty()) {
+        Optional<Page> page = pageRepository.findByPath(url);
 
-                System.out.println("delete from page where id= " + page.get().getId());
-                Iterable<IndexSearch> indexSearches = indexSearchRepository.findByPageId(page.get().getId());
-                pageRepository.deleteById(page.get().getId());
+        if (page.isEmpty()) {
+            Page newPage = new Page();
+            newPage.setSite(site);
+            newPage.setPath(url);
+            frequency = 1;
 
+            try {
+                newPage.setContent(getHtml(url));
+                newPage.setCode(new ResponseEntity<>(HttpStatus.OK).getStatusCodeValue());
 
-                for (IndexSearch indexSearch : indexSearches) {
-                    System.out.println("IndexSearch - " + indexSearch);
+            } catch (Exception ex) {
+                newPage.setCode(new ResponseEntity<>(HttpStatus.NOT_FOUND).getStatusCodeValue());
 
-                    int lemmaId = indexSearch.getLemma().getId();
-                    Optional<Lemma> lemma = lemmaRepository.findById(lemmaId);
-                    frequency = lemma.get().getFrequency();
-                    if (frequency >= 2) {
-                        frequency = frequency - 1;
-                        Lemma newLemma = lemma.get();
+            }
+
+            pageRepository.save(newPage);
+
+            if (newPage.getCode() == 200) {
+                LemmaFinder lemmaFinder = new LemmaFinder();
+                Map<String, Integer> lemmas = lemmaFinder.collectLemmas(url);
+
+                for (Map.Entry<String, Integer> entry : lemmas.entrySet()) {
+
+                    IndexSearch newIndex = new IndexSearch();
+                    Lemma newLemma = new Lemma();
+                    Optional<Lemma> lemma = lemmaRepository.findByLemma(entry.getKey());
+
+                    if (lemma.isEmpty()) {
+                        newLemma.setLemma(entry.getKey());
+                        newLemma.setSite(site);
                         newLemma.setFrequency(frequency);
-                        lemmaRepository.save(newLemma);
-                    } else {
-                        lemmaRepository.deleteById(lemmaId);
-                    }
-                    System.out.println("indexSearchRepository.deleteById = " + indexSearch.getId());
-                    indexSearchRepository.deleteById(indexSearch.getId());
+                        newIndex.setPage(newPage);
+                        newIndex.setLemma(newLemma);
+                        newIndex.setRank(Float.valueOf(entry.getValue()));
 
+                        lemmaRepository.save(newLemma);
+                        indexSearchRepository.save(newIndex);
+                    } else {
+                        frequency = lemma.get().getFrequency() + 1;
+                        lemma.get().setFrequency(frequency);
+                        newIndex.setPage(newPage);
+                        newIndex.setLemma(lemma.get());
+                        newIndex.setRank(Float.valueOf(entry.getValue()));
+                        lemmaRepository.save(lemma.get());
+                        indexSearchRepository.save(newIndex);
+                    }
                 }
             }
-
-        } catch (Exception ex) {
         }
-
-        Page newPage = new Page();
-        newPage.setSite(site);
-        newPage.setPath(url);
-        frequency = 1;
-//        System.out.println("newPage - " + site.getUrl() + " page - " + newPage.getPath());
-
-        LemmaFinder lemmaFinder = new LemmaFinder();
-        Map<String, Integer> lemmas = lemmaFinder.collectLemmas(url);
-
-
-        for (Map.Entry<String, Integer> entry : lemmas.entrySet()) {
-            IndexSearch newIndex = new IndexSearch();
-            Lemma newLemma = new Lemma();
-
-//            System.out.println(entry.getKey() + " - " + entry.getValue());
-            Optional<Lemma> lemma = lemmaRepository.findByLemma(entry.getKey());
-//            System.out.println("Lemma in DB - " + lemma.get().getLemma());
-
-            if (lemma.isEmpty()) {
-
-//                System.out.println("Lemma is empty");
-                newLemma.setLemma(entry.getKey());
-                newLemma.setSite(site);
-//               System.out.println("Frequency - " + frequency);
-                newLemma.setFrequency(frequency);
-                lemmaRepository.save(newLemma);
-
-                newIndex.setPage(newPage);
-                newIndex.setLemma(newLemma);
-                newIndex.setRank(Float.valueOf(entry.getValue()));
-//                System.out.println("NewIndex = " + newIndex.getRank());
-                indexSearchRepository.save(newIndex);
-
-            } else {
-
-                frequency = lemma.get().getFrequency() + 1;
-//               System.out.println("Frequency - " + frequency);
-
-                newLemma.setFrequency(frequency);
-
-                lemmaRepository.save(newLemma);
-
-                newIndex.setPage(newPage);
-                newIndex.setLemma(newLemma);
-                newIndex.setRank(Float.valueOf(entry.getValue()));
-
-                indexSearchRepository.save(newIndex);
-
-            }
-        }
-
-        try {
-            newPage.setContent(getHtml(url));
-            newPage.setCode(new ResponseEntity<>(HttpStatus.OK).getStatusCodeValue());
-        } catch (Exception ex) {
-            newPage.setCode(new ResponseEntity<>(HttpStatus.NOT_FOUND).getStatusCodeValue());
-        }
-
-        pageRepository.save(newPage);
 
     }
 

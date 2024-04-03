@@ -15,8 +15,4 @@ public class SitesList {
 
     private List<SiteConfig> sites;
 
-
-//    private Map<String, String> site;
-
-
 }

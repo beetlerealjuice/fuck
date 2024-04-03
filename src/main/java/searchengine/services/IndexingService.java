@@ -1,5 +1,8 @@
 package searchengine.services;
 
+import searchengine.dto.statistics.StatisticsData;
+import searchengine.model.SearchedData;
+
 public interface IndexingService {
     Boolean startIndexing();
 
@@ -10,4 +13,8 @@ public interface IndexingService {
     Boolean getStopExecutor();
 
     Boolean indexPage(String url);
+
+    StatisticsData getStatistic();
+
+    SearchedData search(String query);
 }

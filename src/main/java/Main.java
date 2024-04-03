@@ -1,48 +1,83 @@
+import org.jsoup.Jsoup;
+import searchengine.utils.LemmaFinder;
+
 import java.io.IOException;
+import java.util.List;
+import java.util.Set;
+
 
 public class Main {
 
     public static void main(String[] args) throws IOException {
 
-        String url = "https://lenta.ru/";
-        String domen = (url.contains("www")) ?
-                url.substring(12).split("/", 2)[0] : url.substring(8).split("/", 2)[0];
-        System.out.println(domen);
 
+        String link = "https://www.svetlovka.ru/#";
 
-//        LuceneMorphology luceneMorph =
-//                new RussianLuceneMorphology();
-//
-//        List<String> wordBaseForms =
-//                luceneMorph.getNormalForms("леса");
-//        wordBaseForms.forEach(System.out::println);
-//
-//        String text = "Повторное появление леопарда в Осетии позволяет предположить,\n" +
+        String text = Jsoup.connect(link.trim())
+                .userAgent("Mozilla").get().html();
+
+        String findWord = "знакомый";
+//        String text = "Знакомые книги «Волшебная пыльца», «первая любовь» и «лунная дорожка»: " +
+//                "как через ароматы открыть для себя давно";
+
+//                String text = "Повторное появление леопарда в Осетии позволяет предположить,\n" +
 //                "что леопард постоянно обитает в некоторых районах Северного\n" +
 //                "Кавказа.";
-//
-//
-//        LemmaFinder lemmaFinder = new LemmaFinder();
-////        lemmaFinder.collectLemmas(text);
-//        Document elements;
-//        try {
-////                System.out.println("SSS - " + s.getPath());
-//            elements = Jsoup.connect("https://www.lenta.ru")   // Get data from DB
-//                    .userAgent("Mozilla").get();        //.get().select("a");
-//        } catch (IOException e) {
-//            throw new RuntimeException(e);
-//        }
-//        String html = elements.html();
-//        String result = elements.text();
-////        String result1 = html.replaceAll("<[^>]*>\\n", "");
-//
-//
-////        System.out.println(result + "\n");
-////        System.out.println(result);
-//
-//        lemmaFinder.collectLemmas(result);
 
+        LemmaFinder lemmaFinder = new LemmaFinder();
+        Set<String> lemmas = lemmaFinder.splitter(text);
+
+        for (String textWord : lemmas) {
+            List<String> words = lemmaFinder.getNormalForms(textWord);
+            for (String lemmaWord : words) {
+                if (lemmaWord.contains(findWord)) {
+
+                    int index = text.indexOf(textWord);
+                    String word;
+                    if (index == -1) {
+                        word = Character.toUpperCase(textWord.charAt(0)) + textWord.substring(1);
+                        index = text.indexOf(word);
+                    } else {
+                        word = textWord;
+                    }
+
+                    int sizeOfWord = word.length();
+
+                    int textLength = text.length();
+                    int start = 0;
+                    int finish = 0;
+                    int quantityOfSubstring = 100;
+
+                    if (index - quantityOfSubstring <= 0) {
+                        start = textLength - textLength;
+                    } else {
+                        start = index - quantityOfSubstring;
+                    }
+                    if (index + quantityOfSubstring >= textLength) {
+                        finish = textLength;
+                    } else {
+                        finish = index + quantityOfSubstring;
+                    }
+
+
+                    String newText = text.substring(start, finish);
+                    int newIndex = newText.indexOf(word);
+
+
+                    StringBuilder sb = new StringBuilder(newText);
+                    sb.insert(newIndex + sizeOfWord, "</b>");
+                    sb.insert(newIndex, "<b>");
+                    System.out.println(sb.toString());
+
+
+//                    System.out.println(textWord);
+                }
+            }
+
+
+        }
 
     }
-
 }
+
+

@@ -1,15 +1,13 @@
 package searchengine.utils;
 
+import lombok.SneakyThrows;
 import org.apache.lucene.morphology.LuceneMorphology;
 import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 public class LemmaFinder {
     private static final LuceneMorphology luceneMorphology;
@@ -26,8 +24,8 @@ public class LemmaFinder {
     public Map<String, Integer> collectLemmas(String url) {
         Document elements;
         try {
-            elements = Jsoup.connect(url)   // Get data from DB
-                    .userAgent("Mozilla").get();        //.get().select("a");
+            elements = Jsoup.connect(url)
+                    .userAgent("Mozilla").get();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -60,32 +58,32 @@ public class LemmaFinder {
                 lemmas.put(normalWord, 1);
             }
         }
-//        for (Map.Entry<String, Integer> entry : lemmas.entrySet()) {
-//            System.out.println(entry.getKey() + " - " + entry.getValue());
-//        }
+
         return lemmas;
     }
 
 
-    //    /**
-//     * @param text текст из которого собираем все леммы
-//     * @return набор уникальных лемм найденных в тексте
-//     */
-//    public Set<String> getLemmaSet(String text) {
-//        String[] textArray = arrayContainsRussianWords(text);
-//        Set<String> lemmaSet = new HashSet<>();
-//        for (String word : textArray) {
-//            if (!word.isEmpty() && isCorrectWordForm(word)) {
-//                List<String> wordBaseForms = luceneMorphology.getMorphInfo(word);
-//                if (anyWordBaseBelongToParticle(wordBaseForms)) {
-//                    continue;
-//                }
-//                lemmaSet.addAll(luceneMorphology.getNormalForms(word));
-//            }
-//        }
-//        return lemmaSet;
-//    }
-//
+    public Set<String> lemmaSearcher(String query) throws IOException {
+        String[] textArray = arrayContainsRussianWords(query);
+        Set<String> lemmaSet = new HashSet<>();
+        for (String word : textArray) {
+
+
+            if (!word.isEmpty() && isCorrectWordForm(word)
+            ) {
+
+                List<String> wordBaseForms = luceneMorphology.getMorphInfo(word);
+                if (anyWordBaseBelongToParticle(wordBaseForms)) {
+                    continue;
+                }
+                lemmaSet.addAll(luceneMorphology.getNormalForms(word));
+            }
+        }
+
+        return lemmaSet;
+    }
+
+
     private boolean anyWordBaseBelongToParticle(List<String> wordBaseForms) {
         return wordBaseForms.stream().anyMatch(this::hasParticleProperty);
     }
@@ -106,20 +104,34 @@ public class LemmaFinder {
                 .trim()
                 .split("\\s+");
     }
-//
-//    private boolean isCorrectWordForm(String word) {
-//        List<String> wordInfo = luceneMorphology.getMorphInfo(word);
-//        for (String morphInfo : wordInfo) {
-//            if (morphInfo.matches(WORD_TYPE_REGEX)) {
-//                return false;
-//            }
-//        }
-//        return true;
-//    }
 
-    public static String html2text(String html) {
-        System.out.println(Jsoup.parse(html).text());
-        return Jsoup.parse(html).text();
+    private boolean isCorrectWordForm(String word) throws IOException {
+        String WORD_TYPE_REGEX = "\\W\\w&&[^а-яА-Я\\s]";
+        List<String> wordInfo = luceneMorphology.getMorphInfo(word);
+        for (String morphInfo : wordInfo) {
+            if (morphInfo.matches(WORD_TYPE_REGEX)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @SneakyThrows
+    public Set<String> splitter(String query) {
+        String[] textArray = arrayContainsRussianWords(query);
+        Set<String> lemmaSet = new HashSet<>();
+        for (String word : textArray) {
+            lemmaSet.add(word);
+
+        }
+
+        return lemmaSet;
+    }
+
+    @SneakyThrows
+    public List<String> getNormalForms(String word) {
+        List<String> wordBaseForms = luceneMorphology.getNormalForms(word);
+        return wordBaseForms;
     }
 
 }
