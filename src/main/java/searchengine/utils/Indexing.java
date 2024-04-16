@@ -23,8 +23,7 @@ import java.util.Optional;
 import java.util.concurrent.RecursiveAction;
 
 @Component
-public class Indexing extends RecursiveAction
-{
+public class Indexing extends RecursiveAction {
 
     private final PageRepository pageRepository;
 
@@ -95,7 +94,9 @@ public class Indexing extends RecursiveAction
 
             if (newPage.getCode() == 200) {
                 LemmaFinder lemmaFinder = new LemmaFinder();
+                LemmaFinderEn lemmaFinderEn = new LemmaFinderEn();
                 Map<String, Integer> lemmas = lemmaFinder.collectLemmas(url);
+                lemmas.putAll(lemmaFinderEn.collectLemmas(url));
 
                 for (Map.Entry<String, Integer> entry : lemmas.entrySet()) {
 

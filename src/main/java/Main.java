@@ -1,82 +1,77 @@
+import lombok.SneakyThrows;
 import org.jsoup.Jsoup;
-import searchengine.utils.LemmaFinder;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.RecursiveTask;
 
 
 public class Main {
 
     public static void main(String[] args) throws IOException {
 
+        String link = "https://www.playback.ru";
 
-        String link = "https://www.svetlovka.ru/#";
+        ForkJoinPool pool = new ForkJoinPool();
+        MyFork myFork = new MyFork(link);
+//        pool.invoke(myFork);
 
-        String text = Jsoup.connect(link.trim())
-                .userAgent("Mozilla").get().html();
+        List<String> result = new ArrayList<>(pool.invoke(myFork));
 
-        String findWord = "знакомый";
-//        String text = "Знакомые книги «Волшебная пыльца», «первая любовь» и «лунная дорожка»: " +
-//                "как через ароматы открыть для себя давно";
-
-//                String text = "Повторное появление леопарда в Осетии позволяет предположить,\n" +
-//                "что леопард постоянно обитает в некоторых районах Северного\n" +
-//                "Кавказа.";
-
-        LemmaFinder lemmaFinder = new LemmaFinder();
-        Set<String> lemmas = lemmaFinder.splitter(text);
-
-        for (String textWord : lemmas) {
-            List<String> words = lemmaFinder.getNormalForms(textWord);
-            for (String lemmaWord : words) {
-                if (lemmaWord.contains(findWord)) {
-
-                    int index = text.indexOf(textWord);
-                    String word;
-                    if (index == -1) {
-                        word = Character.toUpperCase(textWord.charAt(0)) + textWord.substring(1);
-                        index = text.indexOf(word);
-                    } else {
-                        word = textWord;
-                    }
-
-                    int sizeOfWord = word.length();
-
-                    int textLength = text.length();
-                    int start = 0;
-                    int finish = 0;
-                    int quantityOfSubstring = 100;
-
-                    if (index - quantityOfSubstring <= 0) {
-                        start = textLength - textLength;
-                    } else {
-                        start = index - quantityOfSubstring;
-                    }
-                    if (index + quantityOfSubstring >= textLength) {
-                        finish = textLength;
-                    } else {
-                        finish = index + quantityOfSubstring;
-                    }
+        pool.shutdown();
+    }
 
 
-                    String newText = text.substring(start, finish);
-                    int newIndex = newText.indexOf(word);
+    static class MyFork extends RecursiveTask<List<String>> {
+
+        private String link;
 
 
-                    StringBuilder sb = new StringBuilder(newText);
-                    sb.insert(newIndex + sizeOfWord, "</b>");
-                    sb.insert(newIndex, "<b>");
-                    System.out.println(sb.toString());
-
-
-//                    System.out.println(textWord);
-                }
-            }
-
-
+        public MyFork(String link) {
+            this.link = link;
         }
 
+        @SneakyThrows
+        @Override
+        protected List<String> compute() {
+            Thread.sleep(500);
+            List<String> links = new ArrayList<>();
+
+            String regex = "https?://[^,\\s]+";
+
+            Document doc = Jsoup.connect(link)
+                    .userAgent("Mozilla").get();     // .timeout(3000)
+            Elements elements = doc.select("a");
+
+            List<MyFork> tasks = new ArrayList<>();
+
+            for (Element element : elements) {
+                if (element.attr("abs:href").matches(regex)) {
+                    String newLink = element.attr("abs:href");
+
+
+                    links.add(newLink);
+                    MyFork myFork = new MyFork(newLink);
+                    myFork.fork();
+                    tasks.add(myFork);
+                    System.out.println(newLink);
+
+                }
+            }
+            
+
+            tasks.forEach(task -> {
+                task.join();
+            });
+
+            return links;
+
+        }
     }
 }
 

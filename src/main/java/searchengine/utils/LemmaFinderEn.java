@@ -2,19 +2,19 @@ package searchengine.utils;
 
 import lombok.SneakyThrows;
 import org.apache.lucene.morphology.LuceneMorphology;
-import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
+import org.apache.lucene.morphology.english.EnglishLuceneMorphology;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
 import java.io.IOException;
 import java.util.*;
 
-public class LemmaFinder {
+public class LemmaFinderEn {
     private static final LuceneMorphology luceneMorphology;
 
     static {
         try {
-            luceneMorphology = new RussianLuceneMorphology();
+            luceneMorphology = new EnglishLuceneMorphology();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -31,10 +31,11 @@ public class LemmaFinder {
         }
         String text = elements.text();
 
-        String[] words = arrayContainsRussianWords(text);
+        String[] words = arrayContainsEnglishWords(text); // -> Change
         HashMap<String, Integer> lemmas = new HashMap<>();
 
         for (String word : words) {
+
             if (word.isBlank()) {
                 continue;
             }
@@ -64,7 +65,7 @@ public class LemmaFinder {
 
     @SneakyThrows
     public Set<String> lemmaSearcher(String query) {
-        String[] textArray = arrayContainsRussianWords(query);
+        String[] textArray = arrayContainsEnglishWords(query);
         Set<String> lemmaSet = new HashSet<>();
         for (String word : textArray) {
 
@@ -89,7 +90,7 @@ public class LemmaFinder {
     }
 
     private boolean hasParticleProperty(String wordBase) {
-        String[] particlesNames = new String[]{"МЕЖД", "ПРЕДЛ", "СОЮЗ"};
+        String[] particlesNames = new String[]{"PREP", "CONJ", "ARTICLE"}; // -> Change
         for (String property : particlesNames) {
             if (wordBase.toUpperCase().contains(property)) {
                 return true;
@@ -98,19 +99,22 @@ public class LemmaFinder {
         return false;
     }
 
-    private String[] arrayContainsRussianWords(String text) {
+    private String[] arrayContainsEnglishWords(String text) {
         return text.toLowerCase(Locale.ROOT)
-                .replaceAll("([^а-я\\s])", " ")
+                .replaceAll("([^a-z\\s])", " ")
                 .trim()
                 .split("\\s+");
     }
 
     @SneakyThrows
     private boolean isCorrectWordForm(String word) {
-        String WORD_TYPE_REGEX = "\\W\\w&&[^а-яА-Я\\s]";
+        String WORD_TYPE_REGEX = "\\W\\w&&[^a-zA-Z\\s]";
         List<String> wordInfo = luceneMorphology.getMorphInfo(word);
+
         for (String morphInfo : wordInfo) {
             if (morphInfo.matches(WORD_TYPE_REGEX)) {
+//                System.out.println("Regex -- " + morphInfo);
+
                 return false;
             }
         }
@@ -119,7 +123,7 @@ public class LemmaFinder {
 
     @SneakyThrows
     public Set<String> splitter(String query) {
-        String[] textArray = arrayContainsRussianWords(query);
+        String[] textArray = arrayContainsEnglishWords(query);
         Set<String> lemmaSet = new HashSet<>();
         for (String word : textArray) {
             lemmaSet.add(word);
@@ -134,8 +138,4 @@ public class LemmaFinder {
         List<String> wordBaseForms = luceneMorphology.getNormalForms(word);
         return wordBaseForms;
     }
-
 }
-
-
-

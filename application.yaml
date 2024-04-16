@@ -1,7 +1,7 @@
 indexing-settings:
   sites:
-    #    - url: https://www.lenta.ru
-    #      name: Lenta.ru
+    #        - url: https://www.lenta.ru
+    #          name: Lenta.ru
     #    - url: https://www.skillbox.ru
     #      name: Skillbox
     - url: https://www.playback.ru
@@ -22,8 +22,8 @@ indexing-settings:
     #      name: lutherancathedral.ru
     #    - url: https://dombulgakova.ru/
     #      name: dombulgakova.ru
-    - url: https://www.svetlovka.ru/
-      name: www.svetlovka.ru
+#        - url: https://www.svetlovka.ru/
+#          name: www.svetlovka.ru
 server:
   port: 8080
 spring:

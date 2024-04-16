@@ -16,5 +16,5 @@ public interface IndexingService {
 
     StatisticsData getStatistic();
 
-    SearchedData search(String query);
+    SearchedData search(String query, String site);
 }

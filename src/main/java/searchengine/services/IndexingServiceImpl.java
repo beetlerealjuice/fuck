@@ -18,6 +18,7 @@ import searchengine.repository.PageRepository;
 import searchengine.repository.SiteRepository;
 import searchengine.utils.Indexing;
 import searchengine.utils.LemmaFinder;
+import searchengine.utils.LemmaFinderEn;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -115,8 +116,13 @@ public class IndexingServiceImpl implements IndexingService {
         return stopExecutor;
     }
 
+
     @Override
     public Boolean indexPage(String url) {
+
+        if (urlIsUrl(url) == false) {
+            return false;
+        }
 
         String domen = (url.contains("www")) ?
                 url.substring(12).split("/", 2)[0] : url.substring(8).split("/", 2)[0];
@@ -164,6 +170,13 @@ public class IndexingServiceImpl implements IndexingService {
 
         return true;
     }
+
+
+    private boolean urlIsUrl(String url) {
+        String regex = "https?://[^,\\s]+";
+        return url.matches(regex);
+    }
+
 
     @Override
     public StatisticsData getStatistic() {
@@ -215,15 +228,47 @@ public class IndexingServiceImpl implements IndexingService {
         return statisticsData;
     }
 
+    private boolean isEnglish(String query) {
+        LemmaFinderEn lemmaFinderEn = new LemmaFinderEn();
+        Set<String> words = lemmaFinderEn.splitter(query);
+        if (words == null || words.isEmpty()) {
+            return false;
+        }
+        return true;
+    }
+
     @SneakyThrows
     @Override
-    public SearchedData search(String query) {
-
+    public SearchedData search(String query, String webSite) {
+        boolean siteExist = webSite != null && !webSite.isEmpty();
 
         LemmaFinder lemmaFinder = new LemmaFinder();
-        Set<String> getLemmasFromQuery = lemmaFinder.lemmaSearcher(query);
-        Iterable<Lemma> lemmas = lemmaRepository.findAll();
+        LemmaFinderEn lemmaFinderEn = new LemmaFinderEn();
+        Set<String> getLemmasFromQuery;
 
+        if (isEnglish(query)) {
+            getLemmasFromQuery = lemmaFinderEn.lemmaSearcher(query);
+        } else {
+            getLemmasFromQuery = lemmaFinder.lemmaSearcher(query);
+        }
+
+        Iterable<Site> sites = siteRepository.findAll();
+        Iterable<Page> pages = pageRepository.findAll();
+        Iterable<Lemma> lemmas = null;
+
+        // Если сайт был задан, то находим леммы по этому сайту, если не задан, то поиск по всем сайтам
+        if (siteExist) {
+            int siteId = 0;
+            for (Site site : sites) {
+                if (site.getUrl().contains(webSite)) {
+                    siteId = site.getId();
+                }
+            }
+            if (siteId != 0)
+                lemmas = lemmaRepository.findBySiteId(siteId);
+        } else {
+            lemmas = lemmaRepository.findAll();
+        }
         List<Integer> frequencies = new ArrayList<>();
         List<Lemma> foundLemmas = new ArrayList<>();
 
@@ -234,9 +279,9 @@ public class IndexingServiceImpl implements IndexingService {
                     frequencies.add(lemma.getFrequency());
                     foundLemmas.add(lemma);
                 }
-
             }
         }
+
 
         SearchedData searchedData = new SearchedData();
         List<Information> dates = new ArrayList<>();
@@ -261,6 +306,7 @@ public class IndexingServiceImpl implements IndexingService {
                     lemmaIterator.remove();
                 }
             }
+
 
             Iterable<IndexSearch> indexSearches = indexSearchRepository.findAll();
 
@@ -306,10 +352,6 @@ public class IndexingServiceImpl implements IndexingService {
             }
 
 
-            Iterable<Site> sites = siteRepository.findAll();
-            Iterable<Page> pages = pageRepository.findAll();
-
-
             searchedData.setCount(relativeRelevant.size());
             searchedData.setResult(true);
 
@@ -323,31 +365,29 @@ public class IndexingServiceImpl implements IndexingService {
                                 Document document = Jsoup.parse(page.getContent());
                                 String title = document.title();
 
-                                data.setSite(site.getUrl());
-                                data.setSiteName(site.getName());
-                                data.setUri(page.getPath());
-                                data.setTitle(title);
 
                                 // Находим лемму для поиска ее в тексте и выделения
                                 for (Lemma lemma : foundLemmas) {
                                     if (lemma.getSite().getId() == site.getId()) {
 
-                                        String snippet = getSnippet(page.getContent(), lemma.getLemma());
+                                        List<String> snippet = getSnippet(page.getContent(), lemma.getLemma());
+                                        snippet.forEach(s -> {
+                                            data.setSite(site.getUrl());
+                                            data.setSiteName(site.getName());
+                                            data.setUri(page.getPath());
+                                            data.setTitle(title);
 
-                                        data.setSnippet(snippet);
+                                            data.setSnippet(s);
+                                            data.setRelevance(entry.getValue());
+                                            dates.add(data);
+
+                                        });
                                     }
                                 }
-
-                                data.setRelevance(entry.getValue());
-
                             }
-
                         }
-
                     }
                 }
-                dates.add(data);
-
             }
 
             searchedData.setData(dates);
@@ -361,12 +401,31 @@ public class IndexingServiceImpl implements IndexingService {
     }
 
     @SneakyThrows
-    public String getSnippet(String text, String findWord) {
+    public List<String> getSnippet(String text, String findWord) {
+
         LemmaFinder lemmaFinder = new LemmaFinder();
-        Set<String> lemmas = lemmaFinder.splitter(text);
+        LemmaFinderEn lemmaFinderEn = new LemmaFinderEn();
+        Set<String> lemmas;
+
+        if (isEnglish(text)) {
+            lemmas = lemmaFinderEn.splitter(text);
+        } else {
+            lemmas = lemmaFinder.splitter(text);
+        }
+
+        List<String> snippets = new ArrayList<>();
         String snippet = "";
+
         for (String textWord : lemmas) {
-            List<String> words = lemmaFinder.getNormalForms(textWord);
+            List<String> words;
+
+            if (isEnglish(text)) {
+                words = lemmaFinderEn.getNormalForms(textWord);
+            } else {
+                words = lemmaFinder.getNormalForms(textWord);
+            }
+
+
             for (String lemmaWord : words) {
                 if (lemmaWord.contains(findWord)) {
 
@@ -404,13 +463,15 @@ public class IndexingServiceImpl implements IndexingService {
                     StringBuilder sb = new StringBuilder(newText);
                     sb.insert(newIndex + sizeOfWord, "</b>");
                     sb.insert(newIndex, "<b>");
-                    snippet = sb.toString();
+                    snippets.add(sb.toString());
+
                 }
             }
 
         }
 
-        return snippet;
+
+        return snippets;
     }
 
 }
