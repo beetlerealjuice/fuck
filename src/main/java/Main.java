@@ -7,6 +7,7 @@ import org.jsoup.select.Elements;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.RecursiveTask;
 
@@ -18,22 +19,21 @@ public class Main {
 
         String link = "https://www.playback.ru/";
 
-        ForkJoinPool pool = new ForkJoinPool();
 
-//        pool.invoke(myFork);
+        ForkJoinPool pool = new ForkJoinPool();
 
         MyFork myFork = new MyFork(link);
         Set<String> result = new HashSet<>(pool.invoke(myFork));
 
-
         pool.shutdown();
+        result.forEach(System.out::println);
 
 
     }
 
 
-    static class MyFork extends RecursiveTask<Set<String>> {
-
+    static class MyFork extends RecursiveTask<ConcurrentSkipListSet<String>> {
+        ConcurrentSkipListSet<String> links = new ConcurrentSkipListSet<>();
 
         private String link;
 
@@ -44,9 +44,9 @@ public class Main {
 
         @SneakyThrows
         @Override
-        protected Set<String> compute() {
+        protected ConcurrentSkipListSet<String> compute() {
             Thread.sleep(500);
-            Set<String> links = new HashSet<>();
+            Set<MyFork> tasks = new HashSet<>();
 
             String regex = "https?://[^,\\s]+";
 
@@ -54,28 +54,29 @@ public class Main {
                     .userAgent("Mozilla").get();     // .timeout(3000)
             Elements elements = doc.select("a");
 
-            Set<MyFork> tasks = new HashSet<>();
-
             for (Element element : elements) {
                 String newLink = element.attr("abs:href");
-                if (newLink.matches(regex) &&
+                boolean checkLink = newLink.matches(regex) &&
                         newLink.contains(getDomen(link)) &&
-                        !links.contains(newLink)
-                ) {
+                        !links.contains(newLink);
+
+                if (checkLink) {
                     links.add(newLink);
+//                    System.out.println(newLink);
+                    continue;
+                }
+                if (checkLink) {
                     MyFork myFork = new MyFork(newLink);
                     myFork.fork();
                     tasks.add(myFork);
-                    System.out.println(newLink);
 
                 }
+
             }
 
             tasks.forEach(task -> {
                 task.join();
             });
-
-
             return links;
 
         }
@@ -83,7 +84,9 @@ public class Main {
 
     public static String getDomen(String url) {
         String domen = (url.contains("www")) ?
-                url.substring(12) : url;
+                url.substring(12).split("/", 2)[0] : url.substring(8).split("/", 2)[0];
+
+
         return domen;
     }
 

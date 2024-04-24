@@ -5,6 +5,8 @@ import lombok.SneakyThrows;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import searchengine.config.SiteConfig;
 import searchengine.config.SitesList;
@@ -72,10 +74,15 @@ public class IndexingServiceImpl implements IndexingService {
 
                 try {
                     ForkJoinPool pool = new ForkJoinPool();
-                    Indexing indexing = new Indexing(pageRepository, lemmaRepository, indexSearchRepository);
-                    indexing.setSite(newSite);
-                    pool.invoke(indexing); // FJP
+                    Indexing indexing = new Indexing(newSite.getUrl());
+                    Set<String> setLinks = new HashSet<>(pool.invoke(indexing));
                     pool.shutdown();
+                    setLinks.forEach(link -> {
+                        if (link.contains(getDomen(newSite.getUrl()))) {
+                            setPage(newSite, link);
+                        }
+                    });
+
                 } catch (Exception ex) {
 
                     newSite.setLastError(ex.getMessage());
@@ -101,6 +108,80 @@ public class IndexingServiceImpl implements IndexingService {
         return true;
     }
 
+    public synchronized void setPage(Site site, String url) {
+        int frequency = 0;
+
+        Optional<Page> page = pageRepository.findByPath(url);
+
+        if (page.isEmpty()) {
+            Page newPage = new Page();
+            newPage.setSite(site);
+            newPage.setPath(url);
+            frequency = 1;
+
+            try {
+                newPage.setContent(getHtml(url));
+                newPage.setCode(new ResponseEntity<>(HttpStatus.OK).getStatusCodeValue());
+
+            } catch (Exception ex) {
+                newPage.setCode(new ResponseEntity<>(HttpStatus.NOT_FOUND).getStatusCodeValue());
+
+            }
+
+            pageRepository.save(newPage);
+
+            if (newPage.getCode() == 200) {
+                LemmaFinder lemmaFinder = new LemmaFinder();
+                LemmaFinderEn lemmaFinderEn = new LemmaFinderEn();
+                Map<String, Integer> lemmas = lemmaFinder.collectLemmas(url);
+                lemmas.putAll(lemmaFinderEn.collectLemmas(url));
+
+                for (Map.Entry<String, Integer> entry : lemmas.entrySet()) {
+
+                    IndexSearch newIndex = new IndexSearch();
+                    Lemma newLemma = new Lemma();
+                    Optional<Lemma> lemma = lemmaRepository.findByLemma(entry.getKey());
+
+                    if (lemma.isEmpty()) {
+                        newLemma.setLemma(entry.getKey());
+                        newLemma.setSite(site);
+                        newLemma.setFrequency(frequency);
+                        newIndex.setPage(newPage);
+                        newIndex.setLemma(newLemma);
+                        newIndex.setRank(Float.valueOf(entry.getValue()));
+
+                        lemmaRepository.save(newLemma);
+                        indexSearchRepository.save(newIndex);
+                    } else {
+                        frequency = lemma.get().getFrequency() + 1;
+                        lemma.get().setFrequency(frequency);
+                        newIndex.setPage(newPage);
+                        newIndex.setLemma(lemma.get());
+                        newIndex.setRank(Float.valueOf(entry.getValue()));
+                        lemmaRepository.save(lemma.get());
+                        indexSearchRepository.save(newIndex);
+                    }
+                }
+            }
+        }
+
+    }
+
+    @SneakyThrows
+    public String getHtml(String link) {
+//        Thread.sleep(500);
+        String html = Jsoup.connect(link.trim())
+                .userAgent("Mozilla").get().html();
+        return html;
+    }
+
+    public String getDomen(String url) {
+        String domen = (url.contains("www")) ?
+                url.substring(12).split("/", 2)[0] : url.substring(8).split("/", 2)[0];
+        return domen;
+    }
+
+
     @Override
     public Boolean stopIndexing() {
 
@@ -124,10 +205,7 @@ public class IndexingServiceImpl implements IndexingService {
             return false;
         }
 
-        String domen = (url.contains("www")) ?
-                url.substring(12).split("/", 2)[0] : url.substring(8).split("/", 2)[0];
-
-
+        String domen = getDomen(url);
         Iterable<Site> sites = siteRepository.findAll();
         int i = 0;
         for (Site site : sites) {
@@ -138,28 +216,12 @@ public class IndexingServiceImpl implements IndexingService {
                     Optional<Page> page = pageRepository.findByPath(url);
 
                     if (!page.isEmpty()) {
-                        Iterable<IndexSearch> indexSearches = indexSearchRepository.findByPageId(page.get().getId());
-                        pageRepository.deleteById(page.get().getId());
+                        findLemmaInDb(page.get());
 
-                        for (IndexSearch indexSearch : indexSearches) {
-                            int lemmaId = indexSearch.getLemma().getId();
-                            Optional<Lemma> lemma = lemmaRepository.findById(lemmaId);
-                            int frequency = lemma.get().getFrequency();
-                            if (frequency >= 2) {
-                                frequency = frequency - 1;
-                                Lemma newLemma = lemma.get();
-                                newLemma.setFrequency(frequency);
-                                lemmaRepository.save(newLemma);
-                            } else {
-                                lemmaRepository.deleteById(lemmaId);
-                            }
-                            indexSearchRepository.deleteById(indexSearch.getId());
-
-                        }
                     }
 
-                    Indexing indexing = new Indexing(pageRepository, lemmaRepository, indexSearchRepository);
-                    indexing.setPage(site, url);
+
+                    setPage(site, url);
 
 
                 } catch (Exception ex) {
@@ -169,6 +231,27 @@ public class IndexingServiceImpl implements IndexingService {
         if (i == 0) return false;
 
         return true;
+    }
+
+    private void findLemmaInDb(Page page) {
+        Iterable<IndexSearch> indexSearches = indexSearchRepository.findByPageId(page.getId());
+        pageRepository.deleteById(page.getId());
+
+        for (IndexSearch indexSearch : indexSearches) {
+            int lemmaId = indexSearch.getLemma().getId();
+            Optional<Lemma> lemma = lemmaRepository.findById(lemmaId);
+            int frequency = lemma.get().getFrequency();
+            if (frequency >= 2) {
+                frequency = frequency - 1;
+                Lemma newLemma = lemma.get();
+                newLemma.setFrequency(frequency);
+                lemmaRepository.save(newLemma);
+            } else {
+                lemmaRepository.deleteById(lemmaId);
+            }
+            indexSearchRepository.deleteById(indexSearch.getId());
+
+        }
     }
 
 
@@ -228,19 +311,10 @@ public class IndexingServiceImpl implements IndexingService {
         return statisticsData;
     }
 
-    private boolean isEnglish(String query) {
-        LemmaFinderEn lemmaFinderEn = new LemmaFinderEn();
-        Set<String> words = lemmaFinderEn.splitter(query);
-        if (words == null || words.isEmpty()) {
-            return false;
-        }
-        return true;
-    }
 
     @SneakyThrows
     @Override
     public SearchedData search(String query, String webSite) {
-        boolean siteExist = webSite != null && !webSite.isEmpty();
 
         LemmaFinder lemmaFinder = new LemmaFinder();
         LemmaFinderEn lemmaFinderEn = new LemmaFinderEn();
@@ -249,11 +323,65 @@ public class IndexingServiceImpl implements IndexingService {
         if (isEnglish(query)) {
             getLemmasFromQuery = lemmaFinderEn.lemmaSearcher(query);
         } else {
+
             getLemmasFromQuery = lemmaFinder.lemmaSearcher(query);
         }
 
+        List<Lemma> foundLemmas = findLemmasWithLessThen50Percent(getLemmasFromQuery, webSite);
+
+        SearchedData searchedData = new SearchedData();
+        List<Information> dates = new ArrayList<>();
+
+
+        if (foundLemmas.isEmpty()) {
+            searchedData.setResult(true);
+            searchedData.setCount(0);
+
+            return searchedData;
+        }
+
+        Map<Integer, Float> relativeRelevant = getRelativeRelevant(foundLemmas);
+
+        List<Information> dataList = getDataWithoutSnippet(relativeRelevant);
+
+
+// getData
+        for (Information information : dataList) {
+            for (Lemma lemma : foundLemmas) {
+
+                if (lemma.getSite().getUrl().equals(information.getSite())) {
+                    String html = getHtml(information.getUri().trim());
+
+                    for (String snip : getSnippet(html, lemma.getLemma())) {
+                        if (information.getUri().contains(getDomen(lemma.getSite().getUrl()))) {
+                            information.setSnippet(snip);
+                            dates.add(information);
+                        }
+                    }
+                }
+            }
+        }
+        searchedData.setCount(dates.size());
+        searchedData.setResult(true);
+        searchedData.setData(dates);
+        return searchedData;
+    }
+
+    private boolean isEnglish(String query) {
+        String regex = "[A-z, \\s]+";
+
+        if (query.matches(regex)) {
+            return true;
+        }
+        return false;
+
+    }
+
+    private List<Lemma> findLemmasWithLessThen50Percent(Set<String> getLemmasFromQuery, String webSite) {
+        boolean siteExist = webSite != null && !webSite.isEmpty();
+
+
         Iterable<Site> sites = siteRepository.findAll();
-        Iterable<Page> pages = pageRepository.findAll();
         Iterable<Lemma> lemmas = null;
 
         // Если сайт был задан, то находим леммы по этому сайту, если не задан, то поиск по всем сайтам
@@ -267,33 +395,37 @@ public class IndexingServiceImpl implements IndexingService {
             if (siteId != 0)
                 lemmas = lemmaRepository.findBySiteId(siteId);
         } else {
+
             lemmas = lemmaRepository.findAll();
         }
+
+
         List<Integer> frequencies = new ArrayList<>();
         List<Lemma> foundLemmas = new ArrayList<>();
 
         // Нашли соответствие лемм и поискового запроса
+
         for (String getLemma : getLemmasFromQuery) {
             for (Lemma lemma : lemmas) {
+
+
                 if (lemma.getLemma().equals(getLemma)) {
+
                     frequencies.add(lemma.getFrequency());
                     foundLemmas.add(lemma);
+//                    System.out.println(lemma.getLemma() + " - " + lemma.getFrequency());
                 }
             }
         }
 
 
-        SearchedData searchedData = new SearchedData();
-        List<Information> dates = new ArrayList<>();
-
 
         if (!foundLemmas.isEmpty()) {
-
             int max = Collections.max(frequencies);
             int min = Collections.min(frequencies);
             int percent;
             if (max != min) {
-                percent = max / 2;
+                percent = ((max - min) / 2) + min;
             } else {
                 percent = max;
             }
@@ -306,98 +438,79 @@ public class IndexingServiceImpl implements IndexingService {
                     lemmaIterator.remove();
                 }
             }
+            return foundLemmas;
 
-
-            Iterable<IndexSearch> indexSearches = indexSearchRepository.findAll();
-
-            Map<Integer, Float> pageRank = new HashMap<>();
-
-
-            for (Lemma lemma : foundLemmas) {
-
-                for (IndexSearch indexSearch : indexSearches) {
-                    if (indexSearch.getLemma().getId() == lemma.getId()) {
-
-
-                        //Page Id
-                        int idPage = indexSearch.getPage().getId();
-
-                        //Lemma
-                        String lemma1 = lemma.getLemma();
-
-                        //Rank
-                        float rank1 = indexSearch.getRank();
-
-
-                        // Добавляем в мапу
-                        if (pageRank.containsKey(idPage)) {
-                            float newRank = pageRank.get(idPage) + rank1;
-                            pageRank.replace(idPage, newRank);
-                        } else {
-                            pageRank.put(idPage, rank1);
-                        }
-
-                    }
-
-                }
-            }
-
-            Map<Integer, Float> relativeRelevant = new HashMap<>();
-            float maxValue = Collections.max(pageRank.values());
-
-            for (Map.Entry<Integer, Float> entry : pageRank.entrySet()) {
-                float relevantValue = entry.getValue() / maxValue;
-                relativeRelevant.put(entry.getKey(), relevantValue);
-
-            }
-
-
-            searchedData.setCount(relativeRelevant.size());
-            searchedData.setResult(true);
-
-            for (Map.Entry<Integer, Float> entry : relativeRelevant.entrySet()) {
-                Information data = new Information();
-
-                for (Page page : pages) {
-                    if (page.getId() == entry.getKey()) {
-                        for (Site site : sites) {
-                            if (page.getSite().getId() == site.getId()) {
-                                Document document = Jsoup.parse(page.getContent());
-                                String title = document.title();
-
-
-                                // Находим лемму для поиска ее в тексте и выделения
-                                for (Lemma lemma : foundLemmas) {
-                                    if (lemma.getSite().getId() == site.getId()) {
-
-                                        List<String> snippet = getSnippet(page.getContent(), lemma.getLemma());
-                                        snippet.forEach(s -> {
-                                            data.setSite(site.getUrl());
-                                            data.setSiteName(site.getName());
-                                            data.setUri(page.getPath());
-                                            data.setTitle(title);
-
-                                            data.setSnippet(s);
-                                            data.setRelevance(entry.getValue());
-                                            dates.add(data);
-
-                                        });
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            searchedData.setData(dates);
-            return searchedData;
         }
 
-        searchedData.setResult(true);
-        searchedData.setCount(0);
+        return foundLemmas;
+    }
 
-        return searchedData;
+    private Map<Integer, Float> getRelativeRelevant(List<Lemma> foundLemmas) {
+        Map<Integer, Float> pageRank = new HashMap<>();
+
+        Iterable<IndexSearch> indexSearches = indexSearchRepository.findAll();
+        for (Lemma lemma : foundLemmas) {
+            for (IndexSearch indexSearch : indexSearches) {
+                if (indexSearch.getLemma().getId() == lemma.getId()) {
+
+
+                    //Page id
+                    int idPage = indexSearch.getPage().getId();
+
+                    //Lemma
+                    String lemma1 = lemma.getLemma();
+
+                    //Rank
+                    float rank1 = indexSearch.getRank();
+
+
+                    // Добавляем в мапу
+                    if (pageRank.containsKey(idPage)) {
+                        float newRank = pageRank.get(idPage) + rank1;
+                        pageRank.replace(idPage, newRank);
+                    } else {
+                        pageRank.put(idPage, rank1);
+                    }
+
+                }
+
+            }
+        }
+
+        Map<Integer, Float> relativeRelevant = new HashMap<>();
+        float maxValue = Collections.max(pageRank.values());
+
+        for (Map.Entry<Integer, Float> entry : pageRank.entrySet()) {
+            float relevantValue = entry.getValue() / maxValue;
+            relativeRelevant.put(entry.getKey(), relevantValue);
+
+        }
+
+        return relativeRelevant;
+    }
+
+    private List<Information> getDataWithoutSnippet(Map<Integer, Float> relativeRelevant) {
+        List<Information> dataList = new ArrayList<>();
+        Iterable<Page> pages = pageRepository.findAll();
+        for (Map.Entry<Integer, Float> entry : relativeRelevant.entrySet()) {
+            Information data = new Information();
+            for (Page page : pages) {
+                if (page.getId() == entry.getKey()) {
+                    Document document = Jsoup.parse(page.getContent());
+                    String title = document.title();
+                    data.setRelevance(entry.getValue());
+                    data.setUri(page.getPath());
+                    data.setTitle(title);
+                    data.setSite(page.getSite().getUrl());
+                    data.setSiteName(page.getSite().getName());
+                }
+
+            }
+            dataList.add(data);
+        }
+
+
+        return dataList;
     }
 
     @SneakyThrows
@@ -407,7 +520,7 @@ public class IndexingServiceImpl implements IndexingService {
         LemmaFinderEn lemmaFinderEn = new LemmaFinderEn();
         Set<String> lemmas;
 
-        if (isEnglish(text)) {
+        if (isEnglish(findWord)) {
             lemmas = lemmaFinderEn.splitter(text);
         } else {
             lemmas = lemmaFinder.splitter(text);
@@ -415,13 +528,12 @@ public class IndexingServiceImpl implements IndexingService {
 
         List<String> snippets = new ArrayList<>();
         String snippet = "";
-
+        List<String> words;
         for (String textWord : lemmas) {
-            List<String> words;
-
-            if (isEnglish(text)) {
+            if (isEnglish(textWord)) {
                 words = lemmaFinderEn.getNormalForms(textWord);
             } else {
+
                 words = lemmaFinder.getNormalForms(textWord);
             }
 
@@ -455,10 +567,8 @@ public class IndexingServiceImpl implements IndexingService {
                         finish = index + quantityOfSubstring;
                     }
 
-
                     String newText = text.substring(start, finish);
                     int newIndex = newText.indexOf(word);
-
 
                     StringBuilder sb = new StringBuilder(newText);
                     sb.insert(newIndex + sizeOfWord, "</b>");
@@ -469,7 +579,6 @@ public class IndexingServiceImpl implements IndexingService {
             }
 
         }
-
 
         return snippets;
     }

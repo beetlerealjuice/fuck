@@ -113,7 +113,6 @@ public class LemmaFinderEn {
 
         for (String morphInfo : wordInfo) {
             if (morphInfo.matches(WORD_TYPE_REGEX)) {
-//                System.out.println("Regex -- " + morphInfo);
 
                 return false;
             }
@@ -127,7 +126,6 @@ public class LemmaFinderEn {
         Set<String> lemmaSet = new HashSet<>();
         for (String word : textArray) {
             lemmaSet.add(word);
-
         }
 
         return lemmaSet;

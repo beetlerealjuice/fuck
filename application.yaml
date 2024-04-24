@@ -1,11 +1,11 @@
 indexing-settings:
   sites:
-    #        - url: https://www.lenta.ru
-    #          name: Lenta.ru
-    #    - url: https://www.skillbox.ru
-    #      name: Skillbox
-    - url: https://www.playback.ru
-      name: PlayBack.Ru
+#    - url: https://www.lenta.ru
+#      name: Lenta.ru
+    #        - url: https://www.skillbox.ru
+    #          name: Skillbox
+            - url: https://www.playback.ru
+              name: PlayBack.Ru
     #    - url: https://volochek.life/
     #      name: volochek.life
     #    - url: http://radiomv.ru/
