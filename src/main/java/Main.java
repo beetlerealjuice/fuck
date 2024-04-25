@@ -62,14 +62,12 @@ public class Main {
 
                 if (checkLink) {
                     links.add(newLink);
-//                    System.out.println(newLink);
                     continue;
                 }
                 if (checkLink) {
                     MyFork myFork = new MyFork(newLink);
                     myFork.fork();
                     tasks.add(myFork);
-
                 }
 
             }
