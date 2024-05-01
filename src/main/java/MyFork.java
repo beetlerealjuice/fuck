@@ -43,8 +43,8 @@ public class MyFork extends RecursiveTask<ConcurrentSkipListSet<String>> {
 
 
             if (checkLink) {
-                links.add(link);
-                System.out.println(link);
+                links.add(newLink);
+                System.out.println(newLink);
                 MyFork myFork = new MyFork(newLink);
                 myFork.fork();
                 tasks.add(myFork);
