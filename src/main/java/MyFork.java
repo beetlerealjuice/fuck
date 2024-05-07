@@ -48,7 +48,7 @@ public class MyFork extends RecursiveTask<ConcurrentSkipListSet<String>> {
                 MyFork myFork = new MyFork(newLink);
                 myFork.fork();
                 tasks.add(myFork);
-
+                break;
             }
 
         }
