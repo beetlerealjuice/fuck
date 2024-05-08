@@ -4,6 +4,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -29,27 +30,34 @@ public class MyFork extends RecursiveTask<ConcurrentSkipListSet<String>> {
 
         String regex = "https?://[^,\\s]+";
 
-        Document doc = Jsoup.connect(link)
-                .userAgent("Mozilla").get();     // .timeout(3000)
-        Elements elements = doc.select("a");
 
-        for (Element element : elements) {
-            String newLink = element.attr("abs:href");
-            boolean checkLink = newLink.matches(regex) &&
-                    newLink.contains(getDomen(link)) &&
-                    !links.contains(newLink) &&
-                    !newLink.contains(".pdf") &&
-                    !newLink.contains(".jpg");
+        try {
+            Document doc = Jsoup.connect(link)
+                    .userAgent("Mozilla").get();     // .timeout(3000)
+            Elements elements = doc.select("a");
 
 
-            if (checkLink) {
+            for (Element element : elements) {
+                String newLink = element.attr("abs:href");
+                boolean checkLink = newLink.matches(regex) &&
+                        newLink.contains(getDomen(link)) &&
+                        !links.contains(newLink) &&
+                        !newLink.contains(".pdf") &&
+                        !newLink.contains(".jpg") &&
+                        checkException(newLink) == null;
+
+                if (!checkLink) {
+                    continue;
+                }
+
                 links.add(newLink);
                 System.out.println(newLink);
                 MyFork myFork = new MyFork(newLink);
                 myFork.fork();
                 tasks.add(myFork);
-                break;
+
             }
+        } catch (Exception e) {
 
         }
 
@@ -59,6 +67,17 @@ public class MyFork extends RecursiveTask<ConcurrentSkipListSet<String>> {
         return links;
 
     }
+
+    private Exception checkException(String link) {
+        try {
+            Document document = Jsoup.connect(link)
+                    .userAgent("Mozilla").get();
+        } catch (IOException e) {
+            return e;
+        }
+        return null;
+    }
+
     public static String getDomen(String url) {
         String domen = (url.contains("www")) ?
                 url.substring(12).split("/", 2)[0] : url.substring(8).split("/", 2)[0];

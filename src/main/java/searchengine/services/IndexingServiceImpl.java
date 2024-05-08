@@ -419,7 +419,6 @@ public class IndexingServiceImpl implements IndexingService {
         }
 
 
-
         if (!foundLemmas.isEmpty()) {
             int max = Collections.max(frequencies);
             int min = Collections.min(frequencies);

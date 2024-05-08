@@ -1,15 +1,9 @@
-import lombok.SneakyThrows;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
-
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.RecursiveTask;
 
 
 public class Main {
@@ -17,7 +11,7 @@ public class Main {
 
     public static void main(String[] args) throws IOException {
 
-        String link = "https://www.playback.ru/";
+        String link = "https://sendel.ru/";
 
 
         ForkJoinPool pool = new ForkJoinPool();
@@ -27,7 +21,11 @@ public class Main {
 
         pool.shutdown();
 //        result.forEach(System.out::println);
-
+        try {
+            Files.write(Paths.get("file.txt"), result);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
     }
 

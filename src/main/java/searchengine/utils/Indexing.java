@@ -3,6 +3,7 @@ package searchengine.utils;
 
 import lombok.SneakyThrows;
 import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
@@ -15,7 +16,7 @@ import java.util.concurrent.RecursiveTask;
 //@Component
 public class Indexing extends RecursiveTask<ConcurrentSkipListSet<String>> {
 
-    ConcurrentSkipListSet<String> links = new ConcurrentSkipListSet<>();
+    private static ConcurrentSkipListSet<String> links = new ConcurrentSkipListSet<>();
     private String link;
 
     public Indexing(String link) {
@@ -38,23 +39,22 @@ public class Indexing extends RecursiveTask<ConcurrentSkipListSet<String>> {
             throw new RuntimeException(e);
         }
         for (Element element : elements) {
-            String link = element.absUrl("href");
-            boolean checkLink = link.matches(regex) &&
-                    !links.contains(link) && !link.contains(".pdf");
+            String newLink = element.absUrl("href");
+            boolean checkLink = newLink.matches(regex) &&
+                    newLink.contains(getDomen(link)) &&
+                    !links.contains(newLink) &&
+                    !newLink.contains(".pdf") &&
+                    !newLink.contains(".jpg")
+                    && checkException(newLink) == null;
 
-            if (checkLink) {
-                links.add(link);
+
+            if (!checkLink) {
                 continue;
-
             }
-
-            if (checkLink) {
-                Indexing indexing = new Indexing(link);
-                indexing.fork();
-                tasks.add(indexing);
-
-            }
-
+            links.add(newLink);
+            Indexing indexing = new Indexing(newLink);
+            indexing.fork();
+            tasks.add(indexing);
         }
 
         tasks.forEach(task -> {
@@ -62,6 +62,22 @@ public class Indexing extends RecursiveTask<ConcurrentSkipListSet<String>> {
         });
         return links;
 
+    }
+
+    private Exception checkException(String link) {
+        try {
+            Document document = Jsoup.connect(link)
+                    .userAgent("Mozilla").get();
+        } catch (IOException e) {
+            return e;
+        }
+        return null;
+    }
+
+    private String getDomen(String url) {
+        String domen = (url.contains("www")) ?
+                url.substring(12).split("/", 2)[0] : url.substring(8).split("/", 2)[0];
+        return domen;
     }
 
 }
