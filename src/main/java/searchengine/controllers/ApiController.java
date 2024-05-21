@@ -3,12 +3,11 @@ package searchengine.controllers;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import searchengine.dto.statistics.Response;
+import searchengine.dto.statistics.SearchedData;
 import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.model.Information;
-import searchengine.model.Response;
-import searchengine.model.SearchedData;
 import searchengine.services.IndexingService;
-import searchengine.services.StatisticsService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,26 +16,23 @@ import java.util.List;
 @RequestMapping("/api")
 public class ApiController {
 
-    private final IndexingService indexingServiceService;
-    private final StatisticsService statisticsService;
+    private final IndexingService indexingService;
 
 
-    public ApiController(StatisticsService statisticsService,
-                         IndexingService indexingServiceService) {
-        this.statisticsService = statisticsService;
-        this.indexingServiceService = indexingServiceService;
+    public ApiController(IndexingService indexingService) {
+        this.indexingService = indexingService;
     }
 
     @GetMapping("/statistics")
     public ResponseEntity<StatisticsResponse> statistics() {
         StatisticsResponse statisticsResponse = new StatisticsResponse();
 
-        if (indexingServiceService.getStatistic() == null) {
+        if (indexingService.getStatistic() == null) {
             statisticsResponse.setResult(false);
             return new ResponseEntity<>(statisticsResponse, HttpStatus.NOT_IMPLEMENTED);
         } else
             statisticsResponse.setResult(true);
-        statisticsResponse.setStatistics(indexingServiceService.getStatistic());
+        statisticsResponse.setStatistics(indexingService.getStatistic());
         return new ResponseEntity<>(statisticsResponse, HttpStatus.OK);
     }
 
@@ -50,7 +46,7 @@ public class ApiController {
         SearchedData searchedData = new SearchedData();
 
         if (query != null && !query.isEmpty()) {
-            searchedData = indexingServiceService.search(query, site);
+            searchedData = indexingService.search(query, site);
             List<Information> data = searchedData.getData();
             List<Information> newData = new ArrayList<>();
             int start = 0;
@@ -92,8 +88,8 @@ public class ApiController {
     @GetMapping("/startIndexing")
     public ResponseEntity<?> startIndexing() {
         Response response = new Response();
-        if (indexingServiceService.getActiveTreads() == 0) {
-            response.setResult(indexingServiceService.startIndexing());
+        if (indexingService.getActiveTreads() == 0) {
+            response.setResult(indexingService.startIndexing());
             return new ResponseEntity<>(response, HttpStatus.OK);
         } else
 
@@ -106,12 +102,12 @@ public class ApiController {
     @GetMapping("/stopIndexing")
     public ResponseEntity<?> stopIndexing() {
         Response response = new Response();
-        if (indexingServiceService.getActiveTreads() == 0) {
+        if (indexingService.getActiveTreads() == 0) {
             response.setResult(false);
             response.setError("Индексация не запущена");
             return new ResponseEntity<>(response, HttpStatus.OK);
         } else
-            response.setResult(indexingServiceService.stopIndexing());
+            response.setResult(indexingService.stopIndexing());
         return new ResponseEntity<>(response, HttpStatus.OK);
 
     }
@@ -120,12 +116,12 @@ public class ApiController {
     public ResponseEntity<?> indexPage(@RequestParam String url) {
         Response response = new Response();
 
-        if (indexingServiceService.indexPage(url) == false) {
+        if (indexingService.indexPage(url) == false) {
             response.setResult(false);
             response.setError("Данная страница находится за пределами сайтов, указанных в конфигурационном файле");
             return new ResponseEntity<>(response, HttpStatus.OK);
         }
-        response.setResult(indexingServiceService.indexPage(url));
+        response.setResult(indexingService.indexPage(url));
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 

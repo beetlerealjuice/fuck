@@ -1,7 +1,7 @@
 package searchengine.services;
 
+import searchengine.dto.statistics.SearchedData;
 import searchengine.dto.statistics.StatisticsData;
-import searchengine.model.SearchedData;
 
 public interface IndexingService {
     Boolean startIndexing();

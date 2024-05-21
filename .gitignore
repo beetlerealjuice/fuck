@@ -19,8 +19,7 @@ src/main/resources/application.yaml
 *.iws
 *.iml
 *.ipr
-/src/main/java/Main.java
-/src/main/java/MyFork.java
+
 
 ### NetBeans ###
 /nbproject/private/

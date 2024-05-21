@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import searchengine.config.SiteConfig;
 import searchengine.config.SitesList;
 import searchengine.dto.statistics.DetailedStatisticsItem;
+import searchengine.dto.statistics.SearchedData;
 import searchengine.dto.statistics.StatisticsData;
 import searchengine.dto.statistics.TotalStatistics;
 import searchengine.model.*;
@@ -413,7 +414,6 @@ public class IndexingServiceImpl implements IndexingService {
 
                     frequencies.add(lemma.getFrequency());
                     foundLemmas.add(lemma);
-//                    System.out.println(lemma.getLemma() + " - " + lemma.getFrequency());
                 }
             }
         }

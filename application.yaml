@@ -1,29 +1,32 @@
 indexing-settings:
   sites:
-  #    - url: https://www.lenta.ru
-  #      name: Lenta.ru
-          - url: https://www.skillbox.ru
-            name: Skillbox
-  #            - url: https://www.playback.ru
-  #              name: PlayBack.Ru
-  #    - url: https://volochek.life/
-  #      name: volochek.life
-  #    - url: http://radiomv.ru/
-  #      name: radiomv.ru
-  #    - url: https://ipfran.ru/
-  #      name: ipfran.ru
-  #    - url: https://dimonvideo.ru/
-  #      name: dimonvideo.ru
-  #    - url: https://nikoartgallery.com/
-  #      name: nikoartgallery.com
-  #        - url: https://et-cetera.ru/mobile/
-  #          name: et-cetera.ru
-  #        - url: https://www.lutherancathedral.ru/
-  #          name: lutherancathedral.ru
-  #    - url: https://dombulgakova.ru/
-  #      name: dombulgakova.ru
-#        - url: https://www.svetlovka.ru/
-#          name: www.svetlovka.ru
+    #    - url: https://www.lenta.ru
+    #      name: Lenta.ru
+              - url: https://www.skillbox.ru
+                name: Skillbox
+    #            - url: https://www.playback.ru
+    #              name: PlayBack.Ru
+    #    - url: https://volochek.life/
+    #      name: volochek.life
+    #    - url: http://radiomv.ru/
+    #      name: radiomv.ru
+    #    - url: https://ipfran.ru/
+    #      name: ipfran.ru
+    #    - url: https://dimonvideo.ru/
+    #      name: dimonvideo.ru
+    #    - url: https://nikoartgallery.com/
+    #      name: nikoartgallery.com
+    #        - url: https://et-cetera.ru/mobile/
+    #          name: et-cetera.ru
+    #        - url: https://www.lutherancathedral.ru/
+    #          name: lutherancathedral.ru
+    #    - url: https://dombulgakova.ru/
+    #      name: dombulgakova.ru
+    #        - url: https://www.svetlovka.ru/
+    #          name: www.svetlovka.ru
+
+#    - url: https://sendel.ru/
+#      name: sendel.ru
 
 server:
   port: 8080

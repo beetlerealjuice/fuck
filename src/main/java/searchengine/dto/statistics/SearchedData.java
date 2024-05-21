@@ -1,7 +1,8 @@
-package searchengine.model;
+package searchengine.dto.statistics;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
+import searchengine.model.Information;
 
 import java.util.List;
 
