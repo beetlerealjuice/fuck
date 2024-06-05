@@ -2,8 +2,8 @@ indexing-settings:
   sites:
     #    - url: https://www.lenta.ru
     #      name: Lenta.ru
-              - url: https://www.skillbox.ru
-                name: Skillbox
+    #              - url: https://www.skillbox.ru
+    #                name: Skillbox
     #            - url: https://www.playback.ru
     #              name: PlayBack.Ru
     #    - url: https://volochek.life/
@@ -25,8 +25,8 @@ indexing-settings:
     #        - url: https://www.svetlovka.ru/
     #          name: www.svetlovka.ru
 
-#    - url: https://sendel.ru/
-#      name: sendel.ru
+    - url: https://sendel.ru/
+      name: sendel.ru
 
 server:
   port: 8080
@@ -40,5 +40,5 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
     hibernate:
-      ddl-auto: create #update   create-drop  create validate
+      ddl-auto: update #update   create-drop  create validate
     show-sql: true

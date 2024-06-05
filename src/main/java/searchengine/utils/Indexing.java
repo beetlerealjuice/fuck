@@ -13,7 +13,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.RecursiveTask;
 
-//@Component
+
 public class Indexing extends RecursiveTask<ConcurrentSkipListSet<String>> {
 
     private static ConcurrentSkipListSet<String> links = new ConcurrentSkipListSet<>();
@@ -75,9 +75,8 @@ public class Indexing extends RecursiveTask<ConcurrentSkipListSet<String>> {
     }
 
     private String getDomen(String url) {
-        String domen = (url.contains("www")) ?
+        return (url.contains("www")) ?
                 url.substring(12).split("/", 2)[0] : url.substring(8).split("/", 2)[0];
-        return domen;
     }
 
 }

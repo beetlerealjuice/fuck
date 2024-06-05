@@ -8,6 +8,5 @@ import java.util.Optional;
 
 @Repository
 public interface PageRepository extends CrudRepository<Page, Integer> {
-    //@Query("SELECT p FROM Page p where p.path = :path")
     Optional<Page> findByPath(String path);
 }

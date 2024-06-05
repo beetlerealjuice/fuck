@@ -1,20 +1,21 @@
 package searchengine.services;
 
+import searchengine.dto.statistics.Response;
 import searchengine.dto.statistics.SearchedData;
-import searchengine.dto.statistics.StatisticsData;
+import searchengine.dto.statistics.StatisticsResponse;
 
 public interface IndexingService {
-    Boolean startIndexing();
+    Response startIndexing();
 
-    Boolean stopIndexing();
+    Response stopIndexing();
 
     int getActiveTreads();
 
     Boolean getStopExecutor();
 
-    Boolean indexPage(String url);
+    Response indexPage(String url);
 
-    StatisticsData getStatistic();
+    StatisticsResponse getStatistic();
 
-    SearchedData search(String query, String site);
+    SearchedData search(String query, String site, Integer offset, Integer limit);
 }

@@ -8,7 +8,6 @@ import java.util.Optional;
 
 @Repository
 public interface LemmaRepository extends CrudRepository<Lemma, Integer> {
-
     Optional<Lemma> findByLemma(String lemma);
 
     Iterable<Lemma> findBySiteId(Integer id);

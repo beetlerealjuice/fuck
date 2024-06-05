@@ -9,12 +9,9 @@ import lombok.Setter;
 @Setter
 @Entity
 public class IndexSearch {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
-
-
     @ManyToOne(cascade = CascadeType.MERGE, fetch = FetchType.LAZY)
     @JoinColumn(name = "page_id")
     private Page page;
@@ -23,5 +20,4 @@ public class IndexSearch {
     private Lemma lemma;
     @Column(name = "`rank`")
     private Float rank;
-
 }

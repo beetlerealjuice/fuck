@@ -124,10 +124,7 @@ public class LemmaFinderEn {
     public Set<String> splitter(String query) {
         String[] textArray = arrayContainsEnglishWords(query);
         Set<String> lemmaSet = new HashSet<>();
-        for (String word : textArray) {
-            lemmaSet.add(word);
-        }
-
+        lemmaSet.addAll(Arrays.asList(textArray));
         return lemmaSet;
     }
 
