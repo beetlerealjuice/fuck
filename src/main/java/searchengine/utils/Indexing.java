@@ -6,6 +6,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import searchengine.services.impl.IndexingServiceImpl;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -27,7 +28,7 @@ public class Indexing extends RecursiveTask<ConcurrentSkipListSet<String>> {
     @SneakyThrows
     @Override
     protected ConcurrentSkipListSet<String> compute() {
-        Thread.sleep(500);
+        Thread.sleep(1000);
         Set<Indexing> tasks = new HashSet<>();
         String regex = "https?://[^,\\s]+";
 
@@ -39,6 +40,11 @@ public class Indexing extends RecursiveTask<ConcurrentSkipListSet<String>> {
             throw new RuntimeException(e);
         }
         for (Element element : elements) {
+            if (!IndexingServiceImpl.isStopExecutor()) {
+                IndexingServiceImpl.setStopExecutor();
+                return links;
+            }
+
             String newLink = element.absUrl("href");
             boolean checkLink = newLink.matches(regex) &&
                     newLink.contains(getDomen(link)) &&
