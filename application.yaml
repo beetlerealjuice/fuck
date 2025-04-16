@@ -4,8 +4,8 @@ indexing-settings:
     #      name: Lenta.ru
     #    - url: https://www.skillbox.ru
     #      name: Skillbox
-    #    - url: https://www.playback.ru
-    #      name: PlayBack.Ru
+      - url: https://www.playback.ru
+        name: PlayBack.Ru
     #    - url: https://volochek.life/
     #      name: volochek.life
     #    - url: http://radiomv.ru/
@@ -14,8 +14,8 @@ indexing-settings:
     #      name: ipfran.ru
     #    - url: https://dimonvideo.ru/
     #      name: dimonvideo.ru
-    - url: https://nikoartgallery.com/
-      name: nikoartgallery.com
+    # - url: https://nikoartgallery.com/
+    #  name: nikoartgallery.com
     #    - url: https://et-cetera.ru/mobile/
     #      name: et-cetera.ru
     #    - url: https://www.lutherancathedral.ru/
@@ -24,8 +24,8 @@ indexing-settings:
     #      name: dombulgakova.ru
     #    - url: https://www.svetlovka.ru/
     #      name: www.svetlovka.ru
-    - url: https://sendel.ru/
-      name: sendel.ru
+      - url: https://sendel.ru/
+        name: sendel.ru
 
 server:
   port: 8080
@@ -33,7 +33,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/search_engine?useSSL=false&requireSSL=false&allowPublicKeyRetrieval=true
     username: root
-    password: Testtest
+    password: testtest
   jpa:
     properties:
       hibernate:
