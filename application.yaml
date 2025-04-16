@@ -39,5 +39,5 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
     hibernate:
-      ddl-auto: update #update   create-drop  create validate
+      ddl-auto: create #update   create-drop  create validate
     show-sql: true
